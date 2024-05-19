@@ -277,7 +277,7 @@
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
             </plugin>
-            <!--<plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
@@ -289,7 +289,7 @@
                         </property>
                     </properties>
                 </configuration>
-            </plugin>-->
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -421,9 +421,6 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
 
-           <!-- <properties>
-                <argLine>-javaagent:lib/ba-dua-agent-rt-0.6.0-all.jar -Doutput.file=target/coverage.ser</argLine>
-            </properties>-->
 
             <dependencies>
                 <!-- https://mvnrepository.com/artifact/br.usp.each.saeg/ba-dua -->
@@ -432,20 +429,49 @@
                     <artifactId>ba-dua-cli</artifactId>
                     <version>0.6.0</version>
                 </dependency>
+                <dependency>
+                    <groupId>br.usp.each.saeg</groupId>
+                    <artifactId>ba-dua-agent-rt</artifactId>
+                    <version>0.6.0</version>
+                </dependency>
             </dependencies>
 
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>2.10</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>br.usp.each.saeg</groupId>
+                                            <artifactId>ba-dua-agent-rt</artifactId>
+                                            <classifier>all</classifier>
+                                            <version>0.6.0</version>
+                                        </artifactItem>
+                                    </artifactItems>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
                             <!-- custom rule -->
                             <includes>
+                                <include>BookKeeperTest.java</include>
                                 <include>ReadEntryProcessorTest.java</include>
                             </includes>
                             <argLine>
-                                -javaagent:lib/ba-dua-agent-rt-0.6.0-all.jar -Doutput.file=target/coverage.ser
+                                -javaagent:target/dependency/ba-dua-agent-rt-0.6.0-all.jar -Doutput.file=target/coverage.ser
                             </argLine>
                         </configuration>
                     </plugin>
@@ -467,7 +493,7 @@
                                         <argument>-input</argument>
                                         <argument>${project.build.directory}/coverage.ser</argument>
                                         <argument>-classes</argument>
-                                        <argument>${project.build.outputDirectory}</argument>
+                                        <argument>ba-dua/classes</argument>
                                         <argument>-show-classes</argument>
                                         <argument>-show-methods</argument>
                                         <argument>-xml</argument>
