@@ -373,23 +373,50 @@
                 </plugins>
             </build>
         </profile>
+
+        <!-- Custom test definition profile -->
         <profile>
-            <id>customJacoco</id>
+            <id>customTest</id>
+            <activation>
+                <property>
+                    <name>!useDefaultTest</name> <!-- Run only indicated tests by default -->
+                </property>
+            </activation>
+
             <build>
                 <plugins>
+                    <!-- Define tests to run -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
-                            <!-- custom rule -->
+                            <!-- List of test to run -->
                             <includes>
-                                <include>BookKeeperTest.java</include>
+<!--                                <include>BookKeeperTest.java</include>-->
                                 <include>ReadEntryProcessorTest.java</include>
                             </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Jacoco profile -->
+        <profile>
+            <id>jacoco</id>
+
+            <build>
+                <plugins>
+                    <!-- Execute tests -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
                             <!-- custom -->
                             <argLine>@{argLine}</argLine>
                         </configuration>
                     </plugin>
+                    <!-- Produce Jacoco report -->
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
@@ -414,16 +441,11 @@
             </build>
         </profile>
 
+        <!-- Badua profile -->
         <profile>
-            <id>customBadua</id>
-
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-
+            <id>badua</id>
 
             <dependencies>
-                <!-- https://mvnrepository.com/artifact/br.usp.each.saeg/ba-dua -->
                 <dependency>
                     <groupId>br.usp.each.saeg</groupId>
                     <artifactId>ba-dua-cli</artifactId>
@@ -438,6 +460,7 @@
 
             <build>
                 <plugins>
+                    <!-- Copy agent from dependency -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-dependency-plugin</artifactId>
@@ -460,33 +483,29 @@
                             </execution>
                         </executions>
                     </plugin>
-
+                    <!-- Execute tests -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
-                            <!-- custom rule -->
-                            <includes>
-                                <include>BookKeeperTest.java</include>
-                                <include>ReadEntryProcessorTest.java</include>
-                            </includes>
                             <argLine>
-                                -javaagent:target/dependency/ba-dua-agent-rt-0.6.0-all.jar -Doutput.file=target/coverage.ser
+                                -javaagent:target/dependency/ba-dua-agent-rt-0.6.0-all.jar
+                                -Doutput.file=target/coverage.ser
                             </argLine>
                         </configuration>
                     </plugin>
-
-                    <!-- execution -->
+                    <!-- Produce and prettify badua report -->
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
                         <version>1.5.0</version>
                         <executions>
+                            <!-- Produce Badua report -->
                             <execution>
                                 <goals>
                                     <goal>java</goal>
                                 </goals>
-                                <phase>verify</phase>
+                                <phase>test</phase>
                                 <configuration>
                                     <mainClass>br.usp.each.saeg.badua.cli.Report</mainClass>
                                     <arguments>
@@ -501,14 +520,21 @@
                                     </arguments>
                                 </configuration>
                             </execution>
+                            <!-- Prettify Badua report -->
+                            <execution>
+                                <id>Prettify Badua Report</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>${basedir}/ba-dua/prettify.sh</executable>
+                                </configuration>
+                            </execution>
                         </executions>
                     </plugin>
-
-
                 </plugins>
             </build>
-
-
         </profile>
     </profiles>
 </project>
