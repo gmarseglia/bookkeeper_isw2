@@ -6,13 +6,9 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Java CI with Maven
+name: Test coverage of bookkeeper-server with Jacoco
 
-on:
-  push:
-    branches: [ "exam" ]
-  pull_request:
-    branches: [ "exam" ]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -26,4 +22,9 @@ jobs:
         distribution: 'temurin'
         cache: maven
     - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      run: mvn test --file bookkeeper-server/pom.xml -Pjacoco
+    - run: mkdir jacocoReport && cp -r bookkeeper-server/target/site/jacoco jacocoReport
+    - uses: actions/upload-artifact@v4
+      with:
+        name: Jacoco Report
+        path: jacocoReport
