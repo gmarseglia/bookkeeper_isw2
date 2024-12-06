@@ -392,8 +392,7 @@
                         <configuration>
                             <!-- List of test to run -->
                             <includes>
-<!--                                <include>BookKeeperTest.java</include>-->
-                                <include>ReadEntryProcessorTest.java</include>
+                                <include>MyReadCacheTest.java</include>
                             </includes>
                         </configuration>
                     </plugin>
@@ -565,8 +564,12 @@
                         <configuration>
                             <threads>4</threads>
                             <targetClasses>
-                                <param>org.apache.bookkeeper.client.api.BookKeeper</param>
+                                <param>org.apache.bookkeeper.bookie.BufferedChannel</param>
                             </targetClasses>
+                            <targetTests>
+                                <param>org.apache.bookkeeper.bookie.MyBufferedChannelTest</param>
+                            </targetTests>
+<!--                            <verbose>true</verbose>-->
                         </configuration>
                     </plugin>
                 </plugins>
