@@ -21,10 +21,10 @@ class MyReadCacheTest {
     private static final Logger logger = LoggerFactory.getLogger(MyReadCacheTest.class);
     private static final int SEGMENT_SIZE = 64;
 
-    private static void logTest(String testID, KeyStatus keyStatus, String inputString, String expectedString) {
+    private static void logTest(String testID, ReadCacheStatus status, String inputString, String expectedString) {
         logger.info(String.format("#%s: <%s, %s, %s>",
                 testID,
-                keyStatus.toString(),
+                status.keyStatus.toString(),
                 inputString == null ? "null" : String.format("\"%s\"", inputString),
                 expectedString == null ? "null" : String.format("\"%s\"", expectedString)
         ));
@@ -40,28 +40,34 @@ class MyReadCacheTest {
 
     private static Stream<Arguments> putAndGetArguments() {
         String empty = "";
+        String oldString = buildStringOfLength(SEGMENT_SIZE - 1, 'a');
         String smallerThanSS = buildStringOfLength(SEGMENT_SIZE - 1, 'a');
+        String biggerThanSS = buildStringOfLength(SEGMENT_SIZE + 1, 'a');
 
-        // testID, inputString, keyStatus, expectedString
+        ReadCacheStatus cleanStatus = new ReadCacheStatus(KeyStatus.CLEAN, null);
+        ReadCacheStatus dirtyStatus = new ReadCacheStatus(KeyStatus.DIRTY, oldString);
+
+        // String testID, ReadCacheStatus status, String inputString, String expectedString
         return Stream.of(
-                Arguments.of("1", KeyStatus.WRITE, empty, empty),
-                Arguments.of("2", KeyStatus.WRITE, smallerThanSS, smallerThanSS),
-                Arguments.of("3", KeyStatus.OVERWRITE, empty, empty),
-                Arguments.of("4", KeyStatus.OVERWRITE, smallerThanSS, smallerThanSS)
+                Arguments.of("1",   cleanStatus, empty, empty),
+                Arguments.of("2.1", cleanStatus, smallerThanSS, smallerThanSS),
+                Arguments.of("2.2", cleanStatus, biggerThanSS, null),
+                Arguments.of("3",   dirtyStatus, empty, empty),
+                Arguments.of("4.1", dirtyStatus, smallerThanSS, smallerThanSS),
+                Arguments.of("4.2", dirtyStatus, biggerThanSS, oldString)
         );
     }
 
     @ParameterizedTest
     @MethodSource("putAndGetArguments")
-    void testPut(String testID, KeyStatus keyStatus, String inputString, String expectedString) {
+    void testPut(String testID, ReadCacheStatus status, String inputString, String expectedString) {
 
-        logTest(testID, keyStatus, inputString, expectedString);
+        logTest(testID, status, inputString, expectedString);
 
         try (ReadCache sut = new ReadCache(UnpooledByteBufAllocator.DEFAULT, 10 * 1024, SEGMENT_SIZE)) {
 
-            if (keyStatus == KeyStatus.OVERWRITE) {
-                String oldString = buildStringOfLength(SEGMENT_SIZE - 1, 'b');
-                ByteBuf old = Unpooled.wrappedBuffer(oldString.getBytes());
+            if (status.keyStatus == KeyStatus.DIRTY) {
+                ByteBuf old = Unpooled.wrappedBuffer(status.oldString.getBytes());
                 sut.put(1, 1, old);
 
                 assert Objects.equals(old, sut.get(1, 1));
@@ -84,7 +90,17 @@ class MyReadCacheTest {
     }
 
     public enum KeyStatus {
-        WRITE,
-        OVERWRITE
+        CLEAN,
+        DIRTY
+    }
+
+    public static class ReadCacheStatus {
+        public KeyStatus keyStatus;
+        public String oldString;
+
+        public ReadCacheStatus(KeyStatus keyStatus, String oldString) {
+            this.keyStatus = keyStatus;
+            this.oldString = oldString;
+        }
     }
 }
