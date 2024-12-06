@@ -47,7 +47,7 @@ class MyReadCacheTest {
                 Arguments.of("1", KeyStatus.WRITE, empty, empty),
                 Arguments.of("2", KeyStatus.WRITE, smallerThanSS, smallerThanSS),
                 Arguments.of("3", KeyStatus.OVERWRITE, empty, empty),
-                Arguments.of("4", KeyStatus.OVERWRITE, "test", "test")
+                Arguments.of("4", KeyStatus.OVERWRITE, smallerThanSS, smallerThanSS)
         );
     }
 
