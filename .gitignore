@@ -46,3 +46,6 @@ build/
 .gradle/
 *.log
 *.dat
+
+*/results/
+*/saveCurrentResult.sh
