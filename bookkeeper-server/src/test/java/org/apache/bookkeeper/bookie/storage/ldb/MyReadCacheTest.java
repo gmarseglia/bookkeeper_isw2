@@ -19,7 +19,8 @@ import java.util.stream.Stream;
 class MyReadCacheTest {
 
     private static final Logger logger = LoggerFactory.getLogger(MyReadCacheTest.class);
-    private static final int SEGMENT_SIZE = 64;
+    private static final int SEGMENT_SIZE = 256;
+    private static final int SEGMENT_NUMBER = 8;
 
     private static void logTest(String testID, ReadCacheStatus status, String inputString, String expectedString) {
         logger.info(String.format("#%s: <%s, %s, %s>",
@@ -40,21 +41,28 @@ class MyReadCacheTest {
 
     private static Stream<Arguments> putAndGetArguments() {
         String empty = "";
-        String oldString = buildStringOfLength(SEGMENT_SIZE - 1, 'a');
-        String smallerThanSS = buildStringOfLength(SEGMENT_SIZE - 1, 'a');
-        String biggerThanSS = buildStringOfLength(SEGMENT_SIZE + 1, 'a');
+        String oldString = buildStringOfLength(SEGMENT_SIZE - 2, 'b');
+        String smallerThanSS = buildStringOfLength(SEGMENT_SIZE - 2, 'a');
+        String biggerThanSS = buildStringOfLength(SEGMENT_SIZE + 2, 'a');
+
+        String edgeOldString = buildStringOfLength(4, 'b');
+        String edgeNewString = buildStringOfLength(4, 'a');
 
         ReadCacheStatus cleanStatus = new ReadCacheStatus(KeyStatus.CLEAN, null);
         ReadCacheStatus dirtyStatus = new ReadCacheStatus(KeyStatus.DIRTY, oldString);
+        ReadCacheStatus edgeStatus = new ReadCacheStatus(KeyStatus.DIRTY, edgeOldString, (SEGMENT_SIZE * SEGMENT_NUMBER + 1) / 4);
 
         // String testID, ReadCacheStatus status, String inputString, String expectedString
         return Stream.of(
-                Arguments.of("1",   cleanStatus, empty, empty),
+                Arguments.of("1", cleanStatus, empty, empty),
                 Arguments.of("2.1", cleanStatus, smallerThanSS, smallerThanSS),
                 Arguments.of("2.2", cleanStatus, biggerThanSS, null),
-                Arguments.of("3",   dirtyStatus, empty, empty),
+                Arguments.of("3", dirtyStatus, empty, empty),
                 Arguments.of("4.1", dirtyStatus, smallerThanSS, smallerThanSS),
-                Arguments.of("4.2", dirtyStatus, biggerThanSS, oldString)
+                Arguments.of("4.2", dirtyStatus, biggerThanSS, oldString),
+                Arguments.of("5.1", dirtyStatus, null, oldString),
+                Arguments.of("5.2", edgeStatus, edgeNewString, edgeNewString),
+                Arguments.of("5.3", edgeStatus, null, null)
         );
     }
 
@@ -64,13 +72,14 @@ class MyReadCacheTest {
 
         logTest(testID, status, inputString, expectedString);
 
-        try (ReadCache sut = new ReadCache(UnpooledByteBufAllocator.DEFAULT, 10 * 1024, SEGMENT_SIZE)) {
+        try (ReadCache sut = new ReadCache(UnpooledByteBufAllocator.DEFAULT, SEGMENT_SIZE * 8, SEGMENT_SIZE)) {
 
             if (status.keyStatus == KeyStatus.DIRTY) {
                 ByteBuf old = Unpooled.wrappedBuffer(status.oldString.getBytes());
-                sut.put(1, 1, old);
-
-                assert Objects.equals(old, sut.get(1, 1));
+                for (int i = 1; i <= status.repetition; i++) {
+                    sut.put(1, i, old);
+                    assert Objects.equals(old, sut.get(1, i));
+                }
             }
 
             if (inputString != null) {
@@ -97,10 +106,18 @@ class MyReadCacheTest {
     public static class ReadCacheStatus {
         public KeyStatus keyStatus;
         public String oldString;
+        public int repetition;
 
         public ReadCacheStatus(KeyStatus keyStatus, String oldString) {
             this.keyStatus = keyStatus;
             this.oldString = oldString;
+            this.repetition = 1;
+        }
+
+        public ReadCacheStatus(KeyStatus keyStatus, String oldString, int repetition) {
+            this.keyStatus = keyStatus;
+            this.oldString = oldString;
+            this.repetition = repetition;
         }
     }
 }
