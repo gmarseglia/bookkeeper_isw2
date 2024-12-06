@@ -19,42 +19,61 @@ import java.util.stream.Stream;
 class MyReadCacheTest {
 
     private static final Logger logger = LoggerFactory.getLogger(MyReadCacheTest.class);
+    private static final int SEGMENT_SIZE = 64;
+
+    private static String buildStringOfLength(int n) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < n + 1; i++) {
+            builder.append("A");
+        }
+        return builder.toString();
+    }
 
     private static Stream<Arguments> putAndGetArguments() {
+        String empty = "";
+        String smallerThanSS = buildStringOfLength(10);
+        String biggerThanSS = buildStringOfLength(SEGMENT_SIZE + 1);
+
+        // testID, keyStatus, inputString, expectedString
         return Stream.of(
-                Arguments.of(KeyStatus.NON_PRESENT, "", null),
-                Arguments.of(KeyStatus.NON_PRESENT, "test", null),
-                Arguments.of(KeyStatus.PRESENT, "", ""),
-                Arguments.of(KeyStatus.PRESENT, "test", "test")
+                Arguments.of("1", empty, KeyStatus.NON_PRESENT, null),
+                Arguments.of("2", smallerThanSS, KeyStatus.NON_PRESENT, null),
+                Arguments.of("3", empty, KeyStatus.PRESENT, empty),
+                Arguments.of("4", "test", KeyStatus.PRESENT, "test")
         );
     }
 
     @ParameterizedTest
     @MethodSource("putAndGetArguments")
-    void putAndGet(KeyStatus keyStatus, String inputString, String expectedString) {
-        logger.info(String.format("<%s, %s, %s>",
-                keyStatus.toString(),
+    void putAndGet(String testID, String inputString, KeyStatus keyStatus, String expectedString) {
+        logger.info(String.format("#%s: <%s, %s, %s>",
+                testID,
                 inputString == null ? "null" : String.format("\"%s\"", inputString),
+                keyStatus.toString(),
                 expectedString == null ? "null" : String.format("\"%s\"", expectedString)
         ));
 
-        try (ReadCache sut = new ReadCache(UnpooledByteBufAllocator.DEFAULT, 10 * 1024)) {
+        try (ReadCache sut = new ReadCache(UnpooledByteBufAllocator.DEFAULT, 10 * 1024, SEGMENT_SIZE)) {
 
-            ByteBuf input = Unpooled.wrappedBuffer(new byte[1024]);
-            if (inputString != null)
+            ByteBuf input = null;
+            if (inputString != null) {
+                input = Unpooled.wrappedBuffer(new byte[inputString.length()]);
                 input.setBytes(0, inputString.getBytes());
+            }
 
-            if (keyStatus == KeyStatus.PRESENT) {
+            if (input != null && keyStatus == KeyStatus.PRESENT) {
                 sut.put(1, 1, input);
             }
 
             ByteBuf expected = null;
             if (expectedString != null) {
-                expected = Unpooled.wrappedBuffer(new byte[1024]);
+                expected = Unpooled.wrappedBuffer(new byte[expectedString.length()]);
                 expected.setBytes(0, expectedString.getBytes());
             }
 
-            Assertions.assertEquals(expected, sut.get(1, 1));
+            ByteBuf actual = sut.get(1,1);
+
+            Assertions.assertEquals(expected, actual);
         }
     }
 
