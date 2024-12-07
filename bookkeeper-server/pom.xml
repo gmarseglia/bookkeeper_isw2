@@ -546,7 +546,16 @@
                     <artifactId>pitest-maven</artifactId>
                     <version>LATEST</version>
                 </dependency>
+                <dependency>
+                    <groupId>org.pitest</groupId>
+                    <artifactId>pitest-junit5-plugin</artifactId>
+                    <version>LATEST</version>
+                </dependency>
             </dependencies>
+
+            <properties>
+                <withHistory>true</withHistory>
+            </properties>
 
             <build>
                 <plugins>
@@ -562,14 +571,31 @@
                             </execution>
                         </executions>
                         <configuration>
-                            <threads>4</threads>
+                            <threads>1</threads>
                             <targetClasses>
-                                <param>org.apache.bookkeeper.bookie.BufferedChannel</param>
+                                <param>org.apache.bookkeeper.bookie.storage.ldb.ReadCache</param>
                             </targetClasses>
                             <targetTests>
-                                <param>org.apache.bookkeeper.bookie.MyBufferedChannelTest</param>
+                                <param>org.apache.bookkeeper.bookie.storage.ldb.MyReadCacheTest</param>
                             </targetTests>
-<!--                            <verbose>true</verbose>-->
+                            <mutators>
+                                <mutator>CONDITIONALS_BOUNDARY</mutator>
+                            </mutators>
+                            <avoidCallsTo>
+                                <avoidCallsTo>java.util.logging</avoidCallsTo>
+                                <avoidCallsTo>org.apache.log4j</avoidCallsTo>
+                                <avoidCallsTo>org.slf4j</avoidCallsTo>
+                                <avoidCallsTo>org.apache.commons.logging</avoidCallsTo>
+                            </avoidCallsTo>
+                            <excludedMethods>
+                                <excludedMethod>ReadCache*</excludedMethod>
+                                <excludedMethod>get</excludedMethod>
+                                <excludedMethod>close</excludedMethod>
+                                <excludedMethod>hasEntry</excludedMethod>
+                                <excludedMethod>count</excludedMethod>
+                                <excludedMethod>size</excludedMethod>
+                            </excludedMethods>
+                            <verbose>false</verbose>
                         </configuration>
                     </plugin>
                 </plugins>
