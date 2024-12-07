@@ -554,7 +554,7 @@
             </dependencies>
 
             <properties>
-                <withHistory>true</withHistory>
+                <withHistory>false</withHistory>
             </properties>
 
             <build>
