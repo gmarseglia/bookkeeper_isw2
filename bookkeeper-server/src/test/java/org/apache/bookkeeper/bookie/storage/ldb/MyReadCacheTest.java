@@ -33,7 +33,7 @@ class MyReadCacheTest {
 
     private static String buildStringOfLength(int n, char c) {
         StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < n + 1; i++) {
+        for (int i = 0; i < n; i++) {
             builder.append(c);
         }
         return builder.toString();
@@ -41,16 +41,16 @@ class MyReadCacheTest {
 
     private static Stream<Arguments> putAndGetArguments() {
         String empty = "";
-        String oldString = buildStringOfLength(SEGMENT_SIZE - 2, 'b');
-        String smallerThanSS = buildStringOfLength(SEGMENT_SIZE - 2, 'a');
-        String biggerThanSS = buildStringOfLength(SEGMENT_SIZE + 2, 'a');
+        String oldString = buildStringOfLength(SEGMENT_SIZE, 'b');
+        String smallerThanSS = buildStringOfLength(SEGMENT_SIZE, 'a');
+        String biggerThanSS = buildStringOfLength(SEGMENT_SIZE + 1, 'a');
 
         String edgeOldString = buildStringOfLength(4, 'b');
         String edgeNewString = buildStringOfLength(4, 'a');
 
         ReadCacheStatus cleanStatus = new ReadCacheStatus(KeyStatus.CLEAN, null);
         ReadCacheStatus dirtyStatus = new ReadCacheStatus(KeyStatus.DIRTY, oldString);
-        ReadCacheStatus edgeStatus = new ReadCacheStatus(KeyStatus.DIRTY, edgeOldString, (SEGMENT_SIZE * SEGMENT_NUMBER + 1) / 4);
+        ReadCacheStatus edgeStatus = new ReadCacheStatus(KeyStatus.DIRTY, edgeOldString, (SEGMENT_SIZE * (SEGMENT_NUMBER + 1)) / 4);
 
         // String testID, ReadCacheStatus status, String inputString, String expectedString
         return Stream.of(
