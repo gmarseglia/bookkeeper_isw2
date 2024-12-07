@@ -571,16 +571,13 @@
                             </execution>
                         </executions>
                         <configuration>
-                            <threads>1</threads>
+                            <threads>4</threads>
                             <targetClasses>
                                 <param>org.apache.bookkeeper.bookie.storage.ldb.ReadCache</param>
                             </targetClasses>
                             <targetTests>
                                 <param>org.apache.bookkeeper.bookie.storage.ldb.MyReadCacheTest</param>
                             </targetTests>
-                            <mutators>
-                                <mutator>CONDITIONALS_BOUNDARY</mutator>
-                            </mutators>
                             <avoidCallsTo>
                                 <avoidCallsTo>java.util.logging</avoidCallsTo>
                                 <avoidCallsTo>org.apache.log4j</avoidCallsTo>
@@ -588,8 +585,6 @@
                                 <avoidCallsTo>org.apache.commons.logging</avoidCallsTo>
                             </avoidCallsTo>
                             <excludedMethods>
-                                <excludedMethod>ReadCache*</excludedMethod>
-                                <excludedMethod>get</excludedMethod>
                                 <excludedMethod>close</excludedMethod>
                                 <excludedMethod>hasEntry</excludedMethod>
                                 <excludedMethod>count</excludedMethod>
