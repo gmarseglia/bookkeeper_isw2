@@ -3,7 +3,6 @@ package org.apache.bookkeeper.bookie.storage.ldb;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.buffer.UnpooledByteBufAllocator;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -12,8 +11,12 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @RunWith(Parameterized.class)
 class MyReadCacheTest {
@@ -49,8 +52,8 @@ class MyReadCacheTest {
         String edgeNewString = buildStringOfLength(4, 'a');
 
         ReadCacheStatus cleanStatus = new ReadCacheStatus(KeyStatus.CLEAN, null);
-        ReadCacheStatus dirtyStatus = new ReadCacheStatus(KeyStatus.DIRTY, oldString);
-        ReadCacheStatus edgeStatus = new ReadCacheStatus(KeyStatus.DIRTY, edgeOldString, (SEGMENT_SIZE * (SEGMENT_NUMBER + 1)) / 4);
+        ReadCacheStatus dirtyStatus = new ReadCacheStatus(KeyStatus.DIRTY, oldString, 4);
+        ReadCacheStatus edgeStatus = new ReadCacheStatus(KeyStatus.FULL, edgeOldString, (SEGMENT_SIZE * (SEGMENT_NUMBER)) / 64 * 2);
 
         // String testID, ReadCacheStatus status, String inputString, String expectedString
         return Stream.of(
@@ -70,14 +73,17 @@ class MyReadCacheTest {
     @MethodSource("putAndGetArguments")
     void testPut(String testID, ReadCacheStatus status, String inputString, String expectedString) {
 
+        HashMap<Long, ByteBuf> expectedEntries = new HashMap<>();
+
         logTest(testID, status, inputString, expectedString);
 
         try (ReadCache sut = new ReadCache(UnpooledByteBufAllocator.DEFAULT, SEGMENT_SIZE * 8, SEGMENT_SIZE)) {
 
-            if (status.keyStatus == KeyStatus.DIRTY) {
+            if (status.keyStatus == KeyStatus.DIRTY || status.keyStatus == KeyStatus.FULL) {
                 ByteBuf old = Unpooled.wrappedBuffer(status.oldString.getBytes());
-                for (int i = 1; i <= status.repetition; i++) {
+                for (long i = 1; i <= status.repetition; i++) {
                     sut.put(1, i, old);
+                    expectedEntries.put(i, old);
                     assert Objects.equals(old, sut.get(1, i));
                 }
             }
@@ -94,13 +100,29 @@ class MyReadCacheTest {
 
             ByteBuf actual = sut.get(1, 1);
 
-            Assertions.assertEquals(expected, actual);
+            assertEquals(expected, actual);
+
+            if (status.keyStatus == KeyStatus.FULL) {
+                long count = (SEGMENT_SIZE * (SEGMENT_NUMBER - 1)) / 64;
+                long size = expectedEntries.size();
+                for (long i = size - 1; i > size - count; i--) {
+                    assertEquals(expectedEntries.get(i), sut.get(1, i));
+                }
+            } else if (status.keyStatus == KeyStatus.DIRTY) {
+                for (Map.Entry<Long, ByteBuf> expectedEntry : expectedEntries.entrySet()) {
+                    if (expectedEntry.getKey() != 1) {
+                        assertEquals(expectedEntry.getValue(), sut.get(1, expectedEntry.getKey()));
+                    }
+                }
+            }
+
         }
     }
 
     public enum KeyStatus {
         CLEAN,
-        DIRTY
+        DIRTY,
+        FULL
     }
 
     public static class ReadCacheStatus {
