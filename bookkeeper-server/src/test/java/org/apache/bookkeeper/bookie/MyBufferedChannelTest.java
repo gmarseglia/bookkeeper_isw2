@@ -5,23 +5,31 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.util.stream.Stream;
 
 public class MyBufferedChannelTest {
 
     private static final int MAX_CAPACITY = 1024;
-    private static final boolean RESET = true;
-    private static final boolean NON_RESET = false;
 
     private static final Logger logger = LoggerFactory.getLogger(MyBufferedChannelTest.class);
+
+    private static Stream<Arguments> writeReadTestArguments() {
+        return Stream.of(
+                // Arguments.of(""),
+                Arguments.of("INPUT_STRING")
+        );
+    }
 
     private File getTempFile() throws IOException {
         File result = File.createTempFile("TMP", "TMP_FILE");
@@ -29,34 +37,17 @@ public class MyBufferedChannelTest {
         return result;
     }
 
-    private int writeStringToChannel(String input, FileChannel fileChannel, boolean resetPosition) throws IOException {
-        ByteBuffer writeBuffer = ByteBuffer.allocate(1024);
-        writeBuffer.put(input.getBytes());
-        writeBuffer.flip();
-        int byteWritten = fileChannel.write(writeBuffer);
-        if (resetPosition) fileChannel.position(0);
-        return byteWritten;
-    }
-
-    private String readFromFileChannel(FileChannel fileChannel) throws IOException {
-        ByteBuffer readBuffer = ByteBuffer.allocate(MAX_CAPACITY);
-        fileChannel.read(readBuffer);
-        readBuffer.flip();
-        return StandardCharsets.UTF_8.decode(readBuffer).toString();
-    }
-
     private ByteBuf getByteBufFromString(String input) {
         return Unpooled.wrappedBuffer(input.getBytes());
     }
 
-    private String getStringFromByteBuf(ByteBuf byteBuf){
+    private String getStringFromByteBuf(ByteBuf byteBuf) {
         return byteBuf.toString(StandardCharsets.UTF_8);
     }
 
-    @Test
-    public void writeReadTest() throws IOException {
-        String input = "TEST_STRING";
-
+    @ParameterizedTest
+    @MethodSource("writeReadTestArguments")
+    void writeReadTest(String input) throws IOException {
         // Open the File, RandomAccessFile and FileChannel
         FileBoundle fileBoundle = new FileBoundle();
 
@@ -76,32 +67,6 @@ public class MyBufferedChannelTest {
 
         // Close the opened resources
         fileBoundle.close();
-    }
-
-    public void simpleWriteReadToFileChannel() throws IOException {
-        String dataToWrite = "TEST";
-
-        FileBoundle fileBoundle = new FileBoundle();
-        FileChannel fileChannel = fileBoundle.fileChannel;
-
-        // Write data to the file
-        int byteWritten;
-        byteWritten = writeStringToChannel(dataToWrite, fileChannel, RESET);
-        System.out.printf("byteWritten: %d b%n", byteWritten);
-
-        // Read data back from the file
-        int byteRead;
-        String dataRead = readFromFileChannel(fileChannel);
-        byteRead = dataRead.getBytes().length;
-        System.out.printf("byteRead: %d b%n", byteRead);
-
-        // Print the data
-        System.out.println("Data read from file: " + dataRead);
-
-        // Close the channel and file
-        fileBoundle.close();
-
-        Assertions.assertEquals(dataToWrite, dataRead);
     }
 
     protected class FileBoundle {

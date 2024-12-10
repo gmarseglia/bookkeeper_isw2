@@ -392,7 +392,8 @@
                         <configuration>
                             <!-- List of test to run -->
                             <includes>
-                                <include>MyReadCacheTest.java</include>
+                                <!--<include>MyReadCacheTest.java</include>-->
+                                <include>MyBufferedChannelTest.java</include>
                             </includes>
                         </configuration>
                     </plugin>
@@ -573,10 +574,12 @@
                         <configuration>
                             <threads>4</threads>
                             <targetClasses>
-                                <param>org.apache.bookkeeper.bookie.storage.ldb.ReadCache</param>
+                                <!--<param>org.apache.bookkeeper.bookie.storage.ldb.ReadCache</param>-->
+                                <param>org.apache.bookkeeper.bookie.BufferedChannel</param>
                             </targetClasses>
                             <targetTests>
-                                <param>org.apache.bookkeeper.bookie.storage.ldb.MyReadCacheTest</param>
+                                <!--<param>org.apache.bookkeeper.bookie.storage.ldb.MyReadCacheTest</param>-->
+                                <param>org.apache.bookkeeper.bookie.MyBufferedChannelTest</param>
                             </targetTests>
                             <avoidCallsTo>
                                 <avoidCallsTo>java.util.logging</avoidCallsTo>
