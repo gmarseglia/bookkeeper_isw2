@@ -3,7 +3,6 @@ package org.apache.bookkeeper.bookie;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
-import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -18,7 +17,7 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Stream;
 
-public class MyBufferedChannelTest {
+class MyBufferedChannelTest {
 
     private static final int MAX_CAPACITY = 1024;
 
@@ -26,9 +25,9 @@ public class MyBufferedChannelTest {
 
     private static Stream<Arguments> writeReadTestArguments() {
         return Stream.of(
-                // Arguments.of(""),
+                Arguments.of(""),
                 Arguments.of("INPUT_STRING")
-        );
+                );
     }
 
     private File getTempFile() throws IOException {
@@ -49,10 +48,10 @@ public class MyBufferedChannelTest {
     @MethodSource("writeReadTestArguments")
     void writeReadTest(String input) throws IOException {
         // Open the File, RandomAccessFile and FileChannel
-        FileBoundle fileBoundle = new FileBoundle();
+        FileBundle fileBundle = new FileBundle();
 
         // Create the BufferedChannel
-        BufferedChannel bufferedChannel = new BufferedChannel(ByteBufAllocator.DEFAULT, fileBoundle.fileChannel, MAX_CAPACITY);
+        BufferedChannel bufferedChannel = new BufferedChannel(ByteBufAllocator.DEFAULT, fileBundle.fileChannel, MAX_CAPACITY);
 
         // Write into the BufferedChannel
         bufferedChannel.write(getByteBufFromString(input));
@@ -66,15 +65,15 @@ public class MyBufferedChannelTest {
         Assertions.assertEquals(input, getStringFromByteBuf(readBuffer));
 
         // Close the opened resources
-        fileBoundle.close();
+        fileBundle.close();
     }
 
-    protected class FileBoundle {
+    protected class FileBundle {
         private final File file;
         private final RandomAccessFile randomAccessFile;
         private final FileChannel fileChannel;
 
-        protected FileBoundle() throws IOException {
+        protected FileBundle() throws IOException {
             // Create a temp file the filesystem
             this.file = getTempFile();
             this.file.deleteOnExit();
