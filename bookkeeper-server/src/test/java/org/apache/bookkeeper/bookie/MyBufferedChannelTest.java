@@ -23,6 +23,27 @@ public class MyBufferedChannelTest {
         return result;
     }
 
+    protected class FileBoundle {
+        private final File file;
+        private final RandomAccessFile randomAccessFile;
+        private final FileChannel fileChannel;
+
+        protected FileBoundle() throws IOException {
+            // Create a temp file the filesystem
+            this.file = getTempFile();
+            this.file.deleteOnExit();
+            // Create a RandomAccessFile object for the newly created file
+            this.randomAccessFile = new RandomAccessFile(this.file, "rw");
+            // Get the file channel
+            this.fileChannel = this.randomAccessFile.getChannel();
+        }
+
+        protected void close() throws IOException {
+            this.fileChannel.close();
+            this.randomAccessFile.close();
+        }
+    }
+
     private int writeStringToChannel(String input, FileChannel fileChannel, boolean resetPosition) throws IOException {
         ByteBuffer writeBuffer = ByteBuffer.allocate(1024);
         writeBuffer.put(input.getBytes());
@@ -44,14 +65,8 @@ public class MyBufferedChannelTest {
     public void simpleWriteReadToFileChannel() throws IOException {
         String dataToWrite = "A";
 
-        // Create a temp file the filesystem
-        File provaFile = getTempFile();
-
-        // Create a RandomAccessFile object for the newly created file
-        RandomAccessFile file = new RandomAccessFile(provaFile, "rw");
-
-        // Get the file channel
-        FileChannel fileChannel = file.getChannel();
+        FileBoundle fileBoundle = new FileBoundle();
+        FileChannel fileChannel = fileBoundle.fileChannel;
 
         // Write data to the file
         int byteWritten;
@@ -68,8 +83,7 @@ public class MyBufferedChannelTest {
         System.out.println("Data read from file: " + dataRead);
 
         // Close the channel and file
-        fileChannel.close();
-        file.close();
+        fileBoundle.close();
 
         Assertions.assertEquals(dataToWrite, dataRead);
     }
