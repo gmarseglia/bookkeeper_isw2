@@ -37,7 +37,7 @@ class MyBufferedChannelTest {
         String ltUnpString = buildStringOfLength(UNPERSISTED_LIMIT - 1, 'a');
         String ltCapString = buildStringOfLength(MAX_CAPACITY - 1, 'a');
         String geCapString = buildStringOfLength(MAX_CAPACITY, 'a');
-        String doubleCapString = buildStringOfLength(MAX_CAPACITY*2, 'a');
+        String doubleCapString = buildStringOfLength(MAX_CAPACITY * 2, 'a');
         return Stream.of(
                 Arguments.of(new WRTArgument(0, null, false, "")),
                 Arguments.of(new WRTArgument(0, "", false, "")),
@@ -89,17 +89,20 @@ class MyBufferedChannelTest {
                 args.unpersistedBytes);
 
         // Write into the BufferedChannel
+        ByteBuf writeBuffer = null;
+        if (args.valid) {
+            writeBuffer = getByteBufFromString(args.input);
+        }
         try {
-            ByteBuf writeBuffer = null;
-            if (args.valid) {
-                writeBuffer = getByteBufFromString(args.input);
-            }
             bufferedChannel.write(writeBuffer);
         } catch (NullPointerException e) {
             // Check that if a NullPointerException was thrown, it's due to invalid args
             Assertions.assertFalse(args.valid);
             return;
         }
+
+        // Assert that the position on the file channel has been correctly updated
+        Assertions.assertEquals(writeBuffer.array().length, bufferedChannel.position());
 
         // Read from the BufferedChannel
         ByteBuf readBuffer = Unpooled.buffer(args.input.length());
