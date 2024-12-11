@@ -35,6 +35,7 @@ class MyBufferedChannelTest {
 
     private static Stream<Arguments> writeReadTestArguments() {
         String ltUnpString = buildStringOfLength(UNPERSISTED_LIMIT - 1, 'a');
+        String geUnpString = buildStringOfLength(UNPERSISTED_LIMIT, 'a');
         String ltCapString = buildStringOfLength(MAX_CAPACITY - 1, 'a');
         String geCapString = buildStringOfLength(MAX_CAPACITY, 'a');
         String doubleCapString = buildStringOfLength(MAX_CAPACITY * 2, 'a');
@@ -49,6 +50,8 @@ class MyBufferedChannelTest {
                 Arguments.of(new WRTArgument(0, doubleCapString, true, doubleCapString)),
                 Arguments.of(new WRTArgument(UNPERSISTED_LIMIT, ltUnpString, false, "")),
                 Arguments.of(new WRTArgument(UNPERSISTED_LIMIT, ltUnpString, true, ltUnpString)),
+                Arguments.of(new WRTArgument(UNPERSISTED_LIMIT, geUnpString, false, geUnpString)),
+                Arguments.of(new WRTArgument(UNPERSISTED_LIMIT, geUnpString, true, geUnpString)),
                 Arguments.of(new WRTArgument(UNPERSISTED_LIMIT, ltCapString, false, ltCapString)),
                 Arguments.of(new WRTArgument(UNPERSISTED_LIMIT, ltCapString, true, ltCapString))
         );
