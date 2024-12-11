@@ -37,6 +37,7 @@ class MyBufferedChannelTest {
         String ltUnpString = buildStringOfLength(UNPERSISTED_LIMIT - 1, 'a');
         String ltCapString = buildStringOfLength(MAX_CAPACITY - 1, 'a');
         String geCapString = buildStringOfLength(MAX_CAPACITY, 'a');
+        String doubleCapString = buildStringOfLength(MAX_CAPACITY*2, 'a');
         return Stream.of(
                 Arguments.of(new WRTArgument(0, null, false, "")),
                 Arguments.of(new WRTArgument(0, "", false, "")),
@@ -44,6 +45,8 @@ class MyBufferedChannelTest {
                 Arguments.of(new WRTArgument(0, ltCapString, true, ltCapString)),
                 Arguments.of(new WRTArgument(0, geCapString, false, geCapString)),
                 Arguments.of(new WRTArgument(0, geCapString, true, geCapString)),
+                Arguments.of(new WRTArgument(0, doubleCapString, false, doubleCapString)),
+                Arguments.of(new WRTArgument(0, doubleCapString, true, doubleCapString)),
                 Arguments.of(new WRTArgument(UNPERSISTED_LIMIT, ltUnpString, false, "")),
                 Arguments.of(new WRTArgument(UNPERSISTED_LIMIT, ltUnpString, true, ltUnpString)),
                 Arguments.of(new WRTArgument(UNPERSISTED_LIMIT, ltCapString, false, ltCapString)),
@@ -99,7 +102,7 @@ class MyBufferedChannelTest {
         }
 
         // Read from the BufferedChannel
-        ByteBuf readBuffer = Unpooled.buffer(MAX_CAPACITY);
+        ByteBuf readBuffer = Unpooled.buffer(args.input.length());
         bufferedChannel.read(readBuffer, 0, args.input.length());
         logger.info(String.format("readBuffer: %s", getStringFromByteBuf(readBuffer)));
 
