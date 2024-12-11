@@ -3,7 +3,6 @@ package org.apache.bookkeeper.bookie;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
-import org.checkerframework.checker.units.qual.N;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -14,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Stream;
@@ -26,16 +26,11 @@ class MyBufferedChannelTest {
 
     private static Stream<Arguments> writeReadTestArguments() {
         return Stream.of(
-                Arguments.of(new WriteReadTestArgument(null, "")),
-                Arguments.of(new WriteReadTestArgument("", "")),
-                Arguments.of(new WriteReadTestArgument("TEST_STRING", "TEST_STRING"))
+                Arguments.of(new WriteReadTestArgument(null, "", false, "")),
+                Arguments.of(new WriteReadTestArgument("", "", false, "")),
+                Arguments.of(new WriteReadTestArgument("TEST_STRING", "TEST_STRING", false, "")),
+                Arguments.of(new WriteReadTestArgument("TEST_STRING", "TEST_STRING", true, "TEST_STRING"))
         );
-    }
-
-    private File getTempFile() throws IOException {
-        File result = File.createTempFile("TMP", "TMP_FILE");
-        result.deleteOnExit();
-        return result;
     }
 
     private ByteBuf getByteBufFromString(String input) {
@@ -45,14 +40,25 @@ class MyBufferedChannelTest {
     }
 
     private String getStringFromByteBuf(ByteBuf byteBuf) {
+        if (byteBuf == null) {
+            return "<NULL>";
+        }
         return byteBuf.toString(StandardCharsets.UTF_8);
+    }
+
+    private ByteBuf readFromFileChannel(FileChannel fileChannel, long position, int count) throws IOException {
+        ByteBuffer tempBuffer = ByteBuffer.allocate(count);
+        fileChannel.position(position);
+        fileChannel.read(tempBuffer);
+        tempBuffer.flip();
+        return Unpooled.wrappedBuffer(tempBuffer);
     }
 
     @ParameterizedTest
     @MethodSource("writeReadTestArguments")
     void writeReadTest(WriteReadTestArgument args) throws IOException {
         // Open the File, RandomAccessFile and FileChannel
-        FileBundle fileBundle = new FileBundle();
+        FileBundle fileBundle = new FileBundle(null);
 
         // Create the BufferedChannel
         BufferedChannel bufferedChannel = new BufferedChannel(ByteBufAllocator.DEFAULT, fileBundle.fileChannel, MAX_CAPACITY);
@@ -60,11 +66,12 @@ class MyBufferedChannelTest {
         // Write into the BufferedChannel
         try {
             ByteBuf writeBuffer = null;
-            if (args.valid){
+            if (args.valid) {
                 writeBuffer = getByteBufFromString(args.input);
             }
             bufferedChannel.write(writeBuffer);
-        } catch (NullPointerException e){
+        } catch (NullPointerException e) {
+            // Check that if a NullPointerException was thrown, it's due to invalid args
             Assertions.assertFalse(args.valid);
             return;
         }
@@ -74,9 +81,21 @@ class MyBufferedChannelTest {
         bufferedChannel.read(readBuffer, 0, args.input.length());
         logger.info(String.format("readBuffer: %s", getStringFromByteBuf(readBuffer)));
 
-        // Assert that what was written is also read
+        // Assert that what was read from the buffered channel is what was written
         ByteBuf expectedBuffer = getByteBufFromString(args.expected);
         Assertions.assertEquals(expectedBuffer, readBuffer);
+
+        // Force flush in according to argument
+        if (args.forceFlush)
+            bufferedChannel.flush();
+
+        // Read directly from file channel
+        ByteBuf backBuffer = readFromFileChannel(fileBundle.fileChannel, 0, args.input.length());
+        logger.info(String.format("backBuffer: %s", getStringFromByteBuf(backBuffer)));
+
+        // Assert that what was read from file is what is expected to have been flushed
+        ByteBuf expectedOnFileBuffer = getByteBufFromString(args.expectedOnFile);
+        Assertions.assertEquals(expectedOnFileBuffer, backBuffer);
 
         // Close the opened resources
         fileBundle.close();
@@ -86,18 +105,22 @@ class MyBufferedChannelTest {
         protected final boolean valid;
         protected final String input;
         protected final String expected;
+        protected final boolean forceFlush;
+        private final String expectedOnFile;
 
-        public WriteReadTestArgument(String input, String expected) {
+        public WriteReadTestArgument(String input, String expected, boolean forceFlush, String expectedOnFile) {
             this.valid = (input != null);
             this.input = input;
             this.expected = expected;
+            this.forceFlush = forceFlush;
+            this.expectedOnFile = expectedOnFile;
         }
 
         @Override
         public String toString() {
             return "{" +
                     "input='" + input + '\'' +
-                    ", expected='" + expected + '\'' +
+                    ", forceFlush='" + forceFlush + '\'' +
                     '}';
         }
     }
@@ -107,14 +130,28 @@ class MyBufferedChannelTest {
         private final RandomAccessFile randomAccessFile;
         private final FileChannel fileChannel;
 
-        protected FileBundle() throws IOException {
+        public FileBundle(File file) throws IOException {
             // Create a temp file the filesystem
-            this.file = getTempFile();
+            if (file == null) {
+                this.file = getTempFile();
+            } else {
+                this.file = file;
+            }
             this.file.deleteOnExit();
             // Create a RandomAccessFile object for the newly created file
             this.randomAccessFile = new RandomAccessFile(this.file, "rw");
             // Get the file channel
             this.fileChannel = this.randomAccessFile.getChannel();
+        }
+
+        private File getTempFile() throws IOException {
+            File result = File.createTempFile("TMP", "TMP_FILE");
+            result.deleteOnExit();
+            return result;
+        }
+
+        protected FileBundle copyBundle() throws IOException {
+            return new FileBundle(this.file);
         }
 
         protected void close() throws IOException {
