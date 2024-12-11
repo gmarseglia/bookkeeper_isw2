@@ -24,12 +24,24 @@ class MyBufferedChannelTest {
 
     private static final Logger logger = LoggerFactory.getLogger(MyBufferedChannelTest.class);
 
+    private static String buildStringOfLength(int n, char c) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            builder.append(c);
+        }
+        return builder.toString();
+    }
+
     private static Stream<Arguments> writeReadTestArguments() {
+        String ltCapacity = buildStringOfLength(MAX_CAPACITY - 1, 'a');
+        String geCapacity = buildStringOfLength(MAX_CAPACITY, 'a');
         return Stream.of(
                 Arguments.of(new WriteReadTestArgument(null, "", false, "")),
                 Arguments.of(new WriteReadTestArgument("", "", false, "")),
-                Arguments.of(new WriteReadTestArgument("TEST_STRING", "TEST_STRING", false, "")),
-                Arguments.of(new WriteReadTestArgument("TEST_STRING", "TEST_STRING", true, "TEST_STRING"))
+                Arguments.of(new WriteReadTestArgument(ltCapacity, ltCapacity, false, "")),
+                Arguments.of(new WriteReadTestArgument(ltCapacity, ltCapacity, true, ltCapacity)),
+                Arguments.of(new WriteReadTestArgument(geCapacity, geCapacity, false, geCapacity)),
+                Arguments.of(new WriteReadTestArgument(geCapacity, geCapacity, true, geCapacity))
         );
     }
 
@@ -101,6 +113,7 @@ class MyBufferedChannelTest {
         fileBundle.close();
     }
 
+
     protected static class WriteReadTestArgument {
         protected final boolean valid;
         protected final String input;
@@ -125,7 +138,7 @@ class MyBufferedChannelTest {
         }
     }
 
-    protected class FileBundle {
+    protected static class FileBundle {
         private final File file;
         private final RandomAccessFile randomAccessFile;
         private final FileChannel fileChannel;
