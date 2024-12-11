@@ -26,7 +26,7 @@ class MyBufferedChannelTest {
 
     private static Stream<Arguments> writeReadTestArguments() {
         return Stream.of(
-                // Arguments.of(new WriteReadTestArgument(null, "")),
+                Arguments.of(new WriteReadTestArgument(null, "")),
                 Arguments.of(new WriteReadTestArgument("", "")),
                 Arguments.of(new WriteReadTestArgument("TEST_STRING", "TEST_STRING"))
         );
