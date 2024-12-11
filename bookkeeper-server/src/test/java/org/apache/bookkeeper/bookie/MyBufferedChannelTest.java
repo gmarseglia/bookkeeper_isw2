@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 class MyBufferedChannelTest {
 
     private static final int MAX_CAPACITY = 1024;
+    private static final int UNPERSISTED_LIMIT = 512;
 
     private static final Logger logger = LoggerFactory.getLogger(MyBufferedChannelTest.class);
 
@@ -33,15 +34,20 @@ class MyBufferedChannelTest {
     }
 
     private static Stream<Arguments> writeReadTestArguments() {
-        String ltCapacity = buildStringOfLength(MAX_CAPACITY - 1, 'a');
-        String geCapacity = buildStringOfLength(MAX_CAPACITY, 'a');
+        String ltUnpString = buildStringOfLength(UNPERSISTED_LIMIT - 1, 'a');
+        String ltCapString = buildStringOfLength(MAX_CAPACITY - 1, 'a');
+        String geCapString = buildStringOfLength(MAX_CAPACITY, 'a');
         return Stream.of(
-                Arguments.of(new WriteReadTestArgument(null, "", false, "")),
-                Arguments.of(new WriteReadTestArgument("", "", false, "")),
-                Arguments.of(new WriteReadTestArgument(ltCapacity, ltCapacity, false, "")),
-                Arguments.of(new WriteReadTestArgument(ltCapacity, ltCapacity, true, ltCapacity)),
-                Arguments.of(new WriteReadTestArgument(geCapacity, geCapacity, false, geCapacity)),
-                Arguments.of(new WriteReadTestArgument(geCapacity, geCapacity, true, geCapacity))
+                Arguments.of(new WRTArgument(0, null, false, "")),
+                Arguments.of(new WRTArgument(0, "", false, "")),
+                Arguments.of(new WRTArgument(0, ltCapString, false, "")),
+                Arguments.of(new WRTArgument(0, ltCapString, true, ltCapString)),
+                Arguments.of(new WRTArgument(0, geCapString, false, geCapString)),
+                Arguments.of(new WRTArgument(0, geCapString, true, geCapString)),
+                Arguments.of(new WRTArgument(UNPERSISTED_LIMIT, ltUnpString, false, "")),
+                Arguments.of(new WRTArgument(UNPERSISTED_LIMIT, ltUnpString, true, ltUnpString)),
+                Arguments.of(new WRTArgument(UNPERSISTED_LIMIT, ltCapString, false, ltCapString)),
+                Arguments.of(new WRTArgument(UNPERSISTED_LIMIT, ltCapString, true, ltCapString))
         );
     }
 
@@ -68,12 +74,16 @@ class MyBufferedChannelTest {
 
     @ParameterizedTest
     @MethodSource("writeReadTestArguments")
-    void writeReadTest(WriteReadTestArgument args) throws IOException {
+    void writeReadTest(WRTArgument args) throws IOException {
         // Open the File, RandomAccessFile and FileChannel
         FileBundle fileBundle = new FileBundle(null);
 
         // Create the BufferedChannel
-        BufferedChannel bufferedChannel = new BufferedChannel(ByteBufAllocator.DEFAULT, fileBundle.fileChannel, MAX_CAPACITY);
+        BufferedChannel bufferedChannel = new BufferedChannel(
+                ByteBufAllocator.DEFAULT,
+                fileBundle.fileChannel,
+                MAX_CAPACITY,
+                args.unpersistedBytes);
 
         // Write into the BufferedChannel
         try {
@@ -114,17 +124,19 @@ class MyBufferedChannelTest {
     }
 
 
-    protected static class WriteReadTestArgument {
+    protected static class WRTArgument {
         protected final boolean valid;
         protected final String input;
         protected final String expected;
         protected final boolean forceFlush;
         private final String expectedOnFile;
+        private final int unpersistedBytes;
 
-        public WriteReadTestArgument(String input, String expected, boolean forceFlush, String expectedOnFile) {
+        public WRTArgument(int unpersistedBytes, String input, boolean forceFlush, String expectedOnFile) {
+            this.unpersistedBytes = unpersistedBytes;
             this.valid = (input != null);
             this.input = input;
-            this.expected = expected;
+            this.expected = input;
             this.forceFlush = forceFlush;
             this.expectedOnFile = expectedOnFile;
         }
