@@ -75,8 +75,8 @@ class MyBufferedChannelTest {
         logger.info(String.format("readBuffer: %s", getStringFromByteBuf(readBuffer)));
 
         // Assert that what was written is also read
-        String readString = getStringFromByteBuf(readBuffer);
-        Assertions.assertEquals(args.expected, readString);
+        ByteBuf expectedBuffer = getByteBufFromString(args.expected);
+        Assertions.assertEquals(expectedBuffer, readBuffer);
 
         // Close the opened resources
         fileBundle.close();
