@@ -3,6 +3,7 @@ package org.apache.bookkeeper.bookie;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
+import org.checkerframework.checker.units.qual.N;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -25,9 +26,10 @@ class MyBufferedChannelTest {
 
     private static Stream<Arguments> writeReadTestArguments() {
         return Stream.of(
-                Arguments.of(""),
-                Arguments.of("INPUT_STRING")
-                );
+                // Arguments.of(new WriteReadTestArgument(null, "")),
+                Arguments.of(new WriteReadTestArgument("", "")),
+                Arguments.of(new WriteReadTestArgument("TEST_STRING", "TEST_STRING"))
+        );
     }
 
     private File getTempFile() throws IOException {
@@ -37,6 +39,8 @@ class MyBufferedChannelTest {
     }
 
     private ByteBuf getByteBufFromString(String input) {
+        if (input == null)
+            return null;
         return Unpooled.wrappedBuffer(input.getBytes());
     }
 
@@ -46,7 +50,7 @@ class MyBufferedChannelTest {
 
     @ParameterizedTest
     @MethodSource("writeReadTestArguments")
-    void writeReadTest(String input) throws IOException {
+    void writeReadTest(WriteReadTestArgument args) throws IOException {
         // Open the File, RandomAccessFile and FileChannel
         FileBundle fileBundle = new FileBundle();
 
@@ -54,18 +58,48 @@ class MyBufferedChannelTest {
         BufferedChannel bufferedChannel = new BufferedChannel(ByteBufAllocator.DEFAULT, fileBundle.fileChannel, MAX_CAPACITY);
 
         // Write into the BufferedChannel
-        bufferedChannel.write(getByteBufFromString(input));
+        try {
+            ByteBuf writeBuffer = null;
+            if (args.valid){
+                writeBuffer = getByteBufFromString(args.input);
+            }
+            bufferedChannel.write(writeBuffer);
+        } catch (NullPointerException e){
+            Assertions.assertFalse(args.valid);
+            return;
+        }
 
         // Read from the BufferedChannel
         ByteBuf readBuffer = Unpooled.buffer(MAX_CAPACITY);
-        bufferedChannel.read(readBuffer, 0, input.length());
+        bufferedChannel.read(readBuffer, 0, args.input.length());
         logger.info(String.format("readBuffer: %s", getStringFromByteBuf(readBuffer)));
 
         // Assert that what was written is also read
-        Assertions.assertEquals(input, getStringFromByteBuf(readBuffer));
+        String readString = getStringFromByteBuf(readBuffer);
+        Assertions.assertEquals(args.expected, readString);
 
         // Close the opened resources
         fileBundle.close();
+    }
+
+    protected static class WriteReadTestArgument {
+        protected final boolean valid;
+        protected final String input;
+        protected final String expected;
+
+        public WriteReadTestArgument(String input, String expected) {
+            this.valid = (input != null);
+            this.input = input;
+            this.expected = expected;
+        }
+
+        @Override
+        public String toString() {
+            return "{" +
+                    "input='" + input + '\'' +
+                    ", expected='" + expected + '\'' +
+                    '}';
+        }
     }
 
     protected class FileBundle {
