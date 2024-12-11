@@ -588,10 +588,21 @@
                                 <avoidCallsTo>org.apache.commons.logging</avoidCallsTo>
                             </avoidCallsTo>
                             <excludedMethods>
+<!--                                <excludedMethod>close</excludedMethod>-->
+<!--                                <excludedMethod>hasEntry</excludedMethod>-->
+<!--                                <excludedMethod>count</excludedMethod>-->
+<!--                                <excludedMethod>size</excludedMethod>-->
                                 <excludedMethod>close</excludedMethod>
-                                <excludedMethod>hasEntry</excludedMethod>
-                                <excludedMethod>count</excludedMethod>
-                                <excludedMethod>size</excludedMethod>
+                                <excludedMethod>position</excludedMethod>
+                                <excludedMethod>getFileChannelPosition</excludedMethod>
+                                <excludedMethod>flushAndForceWrite</excludedMethod>
+                                <excludedMethod>flushAndForceWriteIfRegularFlush</excludedMethod>
+                                <excludedMethod>flush</excludedMethod>
+                                <excludedMethod>forceWrite</excludedMethod>
+                                <excludedMethod>read</excludedMethod>
+                                <excludedMethod>clear</excludedMethod>
+                                <excludedMethod>getNumOfBytesInWriteBuffer</excludedMethod>
+                                <excludedMethod>getUnpersistedBytes</excludedMethod>
                             </excludedMethods>
                             <verbose>false</verbose>
                         </configuration>
