@@ -8,25 +8,31 @@
 
 name: Test coverage of bookkeeper-server with Jacoco
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up JDK 8
-      uses: actions/setup-java@v3
-      with:
-        java-version: '8'
-        distribution: 'temurin'
-        cache: maven
-    - name: Install with Maven
-      run: mvn install -DskipTests
-    - name: Test with Maven
-      run: mvn test --file bookkeeper-server/pom.xml -Pjacoco
-    - run: mkdir jacocoReport && cp -r bookkeeper-server/target/site/jacoco jacocoReport
-    - uses: actions/upload-artifact@v4
-      with:
-        name: Jacoco Report
-        path: jacocoReport
+      - uses: actions/checkout@v3
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: maven
+      - name: Install with Maven
+        run: mvn install -DskipTests
+      - name: Test with Jacoco
+        run: mvn test --file bookkeeper-server/pom.xml -Pjacoco
+      - name: Test with ba-dua
+        run: mvn test --file bookkeeper-server/pom.xml -Pbadua
+      - name: Test with PIT
+        run: mvn test --file bookkeeper-server/pom.xml -Ppitest
+      - name: Save results
+        working-directory: bookkeeper-server/results
+        run: ./saveCurrentResult.sh current
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Final Report
+          path: bookkeeper-server/results/current
