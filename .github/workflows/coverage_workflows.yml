@@ -23,28 +23,28 @@ jobs:
           cache: maven
 
       - name: Install with Maven
-        run: mvn install -DskipTests
+        run: mvn -B install -DskipTests
 
       - name: Test with Jacoco
-        run: mvn test --file bookkeeper-server/pom.xml -Pjacoco
+        run: mvn -B test --file bookkeeper-server/pom.xml -Pjacoco
 
       - name: Install ba-dua-agent-rt
         working-directory: bookkeeper-server/ba-dua/ba-dua-agent-rt/
-        run: mvn install -DskipTests
+        run: mvn -B install -DskipTests
       - name: Install ba-dua-agent-cli
         working-directory: bookkeeper-server/ba-dua/ba-dua-cli/
-        run: mvn install -DskipTests
+        run: mvn -B install -DskipTests
       - name: Install xmllint
         run: |
           sudo apt update
           sudo apt install libxml2-utils
       - name: Test with ba-dua
         working-directory: bookkeeper-server/
-        run: mvn test -Pbadua
+        run: mvn -B test -Pbadua
 
       - name: Test with PIT
         working-directory: bookkeeper-server/
-        run: mvn test -Ppitest
+        run: mvn -B test -Ppitest
       - name: Save results
         working-directory: bookkeeper-server/results
         run: ./saveCurrentResult.sh current
