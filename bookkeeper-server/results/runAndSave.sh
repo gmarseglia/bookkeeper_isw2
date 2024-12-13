@@ -26,4 +26,4 @@ then
 fi
 
 cd results/ || exit
-./results/saveCurrentResult.sh "$1" -f
+./saveCurrentResult.sh "$1" -f

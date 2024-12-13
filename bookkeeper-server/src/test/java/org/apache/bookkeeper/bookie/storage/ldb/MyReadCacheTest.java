@@ -12,6 +12,8 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 @RunWith(Parameterized.class)
@@ -19,40 +21,121 @@ class MyReadCacheTest {
 
     private static final Logger logger = LoggerFactory.getLogger(MyReadCacheTest.class);
     private static final int MAX_CACHE_SIZE = 10 * 1024;
+    private static final int MAX_SEGMENT_SIZE = 1024;
 
+    private static String buildStringOfLength(int n, char c) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            builder.append(c);
+        }
+        return builder.toString();
+    }
 
-    private static Stream<Arguments> putAndGetArguments() {
+    private static Stream<Arguments> putTestArguments() {
+        Entry nullEntry = new Entry(1, 1, null);
+        Entry emptyEntry = new Entry(1, 1, "");
+        Entry nonEmptyEntry = new Entry(1, 1, "test");
+
+        Entry fillerEntry = new Entry(1, 2, buildStringOfLength(MAX_SEGMENT_SIZE, 'a'));
+
+        State writeCurrentState = new State(StateType.WRITE_CURRENT);
+        State writeNextState = new State(StateType.WRITE_NEXT);
+        writeNextState.addEntry(fillerEntry);
+
         return Stream.of(
-                Arguments.of(null, null),
-                Arguments.of("", ""),
-                Arguments.of("test", "test")
+                Arguments.of("1", writeCurrentState, nullEntry),
+                Arguments.of("2", writeCurrentState, emptyEntry),
+                Arguments.of("3.1", writeCurrentState, nonEmptyEntry),
+                Arguments.of("3.2", writeNextState, nonEmptyEntry)
         );
     }
 
+    private ByteBuf byteBufFromEntry(Entry entry) {
+        return Unpooled.wrappedBuffer(entry.content.getBytes());
+    }
+
+    private void sutPutEntry(ReadCache sut, Entry entry) {
+        sut.put(entry.ledgerId, entry.entryId, byteBufFromEntry(entry));
+    }
+
+    private ByteBuf sutGetEntry(ReadCache sut, Entry entry) {
+        return sut.get(entry.ledgerId, entry.entryId);
+    }
+
     @ParameterizedTest
-    @MethodSource("putAndGetArguments")
-    void putAndGet(String inputString, String expectedString) {
+    @MethodSource("putTestArguments")
+    void putTest(String testID, State state, Entry testEntry) {
+        logger.info(String.format("Test: #%s", testID));
 
-        try (ReadCache sut = new ReadCache(UnpooledByteBufAllocator.DEFAULT, MAX_CACHE_SIZE)) {
-
+        // Create the ReadCache object
+        try (ReadCache sut = new ReadCache(UnpooledByteBufAllocator.DEFAULT, MAX_CACHE_SIZE, MAX_SEGMENT_SIZE)) {
+            String inputString = testEntry.content;
             ByteBuf inputBuf;
 
+            // Check the "entry == null" case
             if (inputString == null) {
                 inputBuf = null;
                 Assertions.assertThrows(NullPointerException.class, () -> sut.put(1, 1, inputBuf));
                 return;
             }
 
-            inputBuf = Unpooled.wrappedBuffer(inputString.getBytes());
-            sut.put(1, 1, inputBuf);
-
-            ByteBuf expectedBuf = null;
-            if (expectedString != null) {
-                expectedBuf = Unpooled.wrappedBuffer(expectedString.getBytes());
+            // Put all the entries needed to reach the state configuration
+            if (state.type == StateType.WRITE_NEXT) {
+                for (Entry entry : state.entryList) {
+                    sutPutEntry(sut, entry);
+                }
             }
 
-            Assertions.assertEquals(expectedBuf, sut.get(1, 1));
+            // Put the test entry
+            sutPutEntry(sut, testEntry);
 
+            // Check if the test entry has been put correctly
+            ByteBuf expectedBuf = byteBufFromEntry(testEntry);
+            ByteBuf actualBuf = sutGetEntry(sut, testEntry);
+            Assertions.assertEquals(expectedBuf, actualBuf);
+
+            // Check if the entries needed to reach the state configuration have been put correctly
+            ByteBuf prevExpectedBuf, prevActualBuf;
+            if (state.type == StateType.WRITE_NEXT) {
+                for (Entry entry : state.entryList) {
+                    prevExpectedBuf = byteBufFromEntry(entry);
+                    prevActualBuf = sutGetEntry(sut, entry);
+                    Assertions.assertEquals(prevExpectedBuf, prevActualBuf);
+                }
+            }
+
+        }
+    }
+
+    protected enum StateType {
+        WRITE_CURRENT, WRITE_NEXT,
+    }
+
+    protected static class Entry {
+        protected final int ledgerId;
+        protected final int entryId;
+        protected final String content;
+
+        public Entry(int ledgerId, int entryId, String content) {
+            this.ledgerId = ledgerId;
+            this.entryId = entryId;
+            this.content = content;
+        }
+    }
+
+    protected static class State {
+        protected final StateType type;
+        protected List<Entry> entryList = null;
+
+        public State(StateType type) {
+            this.type = type;
+        }
+
+        public void addEntry(Entry entry) {
+            if (this.entryList == null) {
+                this.entryList = new ArrayList<>();
+            }
+            this.entryList.add(entry);
         }
     }
 
