@@ -48,5 +48,3 @@ build/
 *.dat
 
 */results/*/
-*/saveCurrentResult.sh
-*/runAndSave.sh

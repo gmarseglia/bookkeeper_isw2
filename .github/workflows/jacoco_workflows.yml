@@ -25,6 +25,12 @@ jobs:
         run: mvn install -DskipTests
       - name: Test with Jacoco
         run: mvn test --file bookkeeper-server/pom.xml -Pjacoco
+      - name: Install ba-dua-agent-rt
+        working-directory: bookkeeper-server/results/ba-dua/ba-dua-agent-rt/
+        run: mvn install -DskipTests
+      - name: Install ba-dua-agent-cli
+        working-directory: bookkeeper-server/results/ba-dua/ba-dua-agent-rt/
+        run: mvn install -DskipTests
       - name: Test with ba-dua
         run: mvn test --file bookkeeper-server/pom.xml -Pbadua
       - name: Test with PIT
