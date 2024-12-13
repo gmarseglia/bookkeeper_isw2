@@ -35,14 +35,13 @@ class MyReadCacheTest {
 
         try (ReadCache sut = new ReadCache(UnpooledByteBufAllocator.DEFAULT, MAX_CACHE_SIZE)) {
 
-            ByteBuf inputBuf = null;
-            if (inputString != null)
+            ByteBuf inputBuf;
+            if (inputString != null) {
                 inputBuf = Unpooled.wrappedBuffer(inputString.getBytes());
-
-            try {
                 sut.put(1, 1, inputBuf);
-            } catch (NullPointerException e) {
-                Assertions.assertNull(inputString);
+            } else {
+                inputBuf = null;
+                Assertions.assertThrows(NullPointerException.class, () -> sut.put(1,1, inputBuf));
                 return;
             }
 
