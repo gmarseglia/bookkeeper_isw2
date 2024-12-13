@@ -6,7 +6,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Test coverage of bookkeeper-server with Jacoco
+name: Test coverage of bookkeeper-server
 
 on: [ push, pull_request ]
 
@@ -21,19 +21,27 @@ jobs:
           java-version: '8'
           distribution: 'temurin'
           cache: maven
+
       - name: Install with Maven
         run: mvn install -DskipTests
+
       - name: Test with Jacoco
         run: mvn test --file bookkeeper-server/pom.xml -Pjacoco
+
       - name: Install ba-dua-agent-rt
         working-directory: bookkeeper-server/ba-dua/ba-dua-agent-rt/
         run: mvn install -DskipTests
       - name: Install ba-dua-agent-cli
         working-directory: bookkeeper-server/ba-dua/ba-dua-cli/
         run: mvn install -DskipTests
+      - name: Install xmllint
+        run: |
+          sudo apt update
+          sudo apt install libxml2-utils
       - name: Test with ba-dua
         working-directory: bookkeeper-server/
         run: mvn test -Pbadua
+
       - name: Test with PIT
         working-directory: bookkeeper-server/
         run: mvn test -Ppitest
