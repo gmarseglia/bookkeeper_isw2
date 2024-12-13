@@ -430,6 +430,11 @@
                             <execution>
                                 <id>report</id>
                                 <phase>test</phase>
+                                <configuration>
+                                    <includes>
+                                        <include>org/apache/bookkeeper/bookie/storage/ldb/ReadCache.class</include>
+                                    </includes>
+                                </configuration>
                                 <goals>
                                     <goal>report</goal>
                                 </goals>

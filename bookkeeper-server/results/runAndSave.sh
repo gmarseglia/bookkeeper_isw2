@@ -25,4 +25,5 @@ then
 	mvn test -Ppitest
 fi
 
+cd results/ || exit
 ./results/saveCurrentResult.sh "$1" -f
