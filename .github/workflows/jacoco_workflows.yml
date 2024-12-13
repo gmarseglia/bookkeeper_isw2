@@ -32,9 +32,11 @@ jobs:
         working-directory: bookkeeper-server/ba-dua/ba-dua-cli/
         run: mvn install -DskipTests
       - name: Test with ba-dua
-        run: mvn test --file bookkeeper-server/pom.xml -Pbadua
+        working-directory: bookkeeper-server/
+        run: mvn test -Pbadua
       - name: Test with PIT
-        run: mvn test --file bookkeeper-server/pom.xml -Ppitest
+        working-directory: bookkeeper-server/
+        run: mvn test -Ppitest
       - name: Save results
         working-directory: bookkeeper-server/results
         run: ./saveCurrentResult.sh current
