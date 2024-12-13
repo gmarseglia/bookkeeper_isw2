@@ -23,7 +23,7 @@ class MyReadCacheTest {
 
     private static Stream<Arguments> putAndGetArguments() {
         return Stream.of(
-                Arguments.of((Object) null, (Object) null),
+                Arguments.of(null, null),
                 Arguments.of("", ""),
                 Arguments.of("test", "test")
         );
@@ -36,14 +36,15 @@ class MyReadCacheTest {
         try (ReadCache sut = new ReadCache(UnpooledByteBufAllocator.DEFAULT, MAX_CACHE_SIZE)) {
 
             ByteBuf inputBuf;
-            if (inputString != null) {
-                inputBuf = Unpooled.wrappedBuffer(inputString.getBytes());
-                sut.put(1, 1, inputBuf);
-            } else {
+
+            if (inputString == null) {
                 inputBuf = null;
-                Assertions.assertThrows(NullPointerException.class, () -> sut.put(1,1, inputBuf));
+                Assertions.assertThrows(NullPointerException.class, () -> sut.put(1, 1, inputBuf));
                 return;
             }
+
+            inputBuf = Unpooled.wrappedBuffer(inputString.getBytes());
+            sut.put(1, 1, inputBuf);
 
             ByteBuf expectedBuf = null;
             if (expectedString != null) {
@@ -51,6 +52,7 @@ class MyReadCacheTest {
             }
 
             Assertions.assertEquals(expectedBuf, sut.get(1, 1));
+
         }
     }
 
