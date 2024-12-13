@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-xmllint --format target/badua.xml > target/badua_pretty.xml
+mkdir -p target/site/ba-dua
+cp target/badua.xml target/site/ba-dua
+xmllint --format target/site/ba-dua/badua.xml > target/site/ba-dua/badua_pretty.xml

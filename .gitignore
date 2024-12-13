@@ -47,6 +47,6 @@ build/
 *.log
 *.dat
 
-*/results/
+*/results/*/
 */saveCurrentResult.sh
 */runAndSave.sh

@@ -571,6 +571,7 @@
                             </execution>
                         </executions>
                         <configuration>
+                            <reportsDirectory>${project.build.directory}/site/pit-reports</reportsDirectory>
                             <threads>4</threads>
                             <targetClasses>
                                 <param>org.apache.bookkeeper.bookie.storage.ldb.ReadCache</param>
