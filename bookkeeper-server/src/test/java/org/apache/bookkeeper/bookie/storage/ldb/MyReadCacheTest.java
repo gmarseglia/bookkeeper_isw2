@@ -22,6 +22,7 @@ class MyReadCacheTest {
     private static final Logger logger = LoggerFactory.getLogger(MyReadCacheTest.class);
     private static final int MAX_CACHE_SIZE = 10 * 1024;
     private static final int MAX_SEGMENT_SIZE = 1024;
+    private static final int SEGMENT_NUM = MAX_CACHE_SIZE / MAX_SEGMENT_SIZE;
 
     private static String buildStringOfLength(int n, char c) {
         StringBuilder builder = new StringBuilder();
@@ -37,20 +38,31 @@ class MyReadCacheTest {
         String leThanSS = buildStringOfLength(MAX_SEGMENT_SIZE, 'a');
         Entry leThanSSEntry = new Entry(1, 1, leThanSS);
 
-        String gtThanSS = buildStringOfLength(MAX_SEGMENT_SIZE+1, 'a');
+        String gtThanSS = buildStringOfLength(MAX_SEGMENT_SIZE + 1, 'a');
         Entry gtThanSSEntry = new Entry(1, 1, gtThanSS, null);
 
-        Entry fillerEntry = new Entry(1, 2, buildStringOfLength(MAX_SEGMENT_SIZE, 'a'));
+        Entry fillerEntry = new Entry(2, 1, buildStringOfLength(MAX_SEGMENT_SIZE, 'a'));
 
         State writeCurrentState = new State(StateType.WRITE_CURRENT);
         State writeNextState = new State(StateType.WRITE_NEXT);
         writeNextState.addEntry(fillerEntry);
+
+        State overwriteDenseState = new State(StateType.OVERWRITE_DENSE);
+
+        int density = 2;
+        for (int entryId = 1; entryId <= SEGMENT_NUM * density; entryId++) {
+            fillerEntry = new Entry(2, entryId, buildStringOfLength(MAX_SEGMENT_SIZE / density, 'a'));
+            if (entryId <= density)
+                fillerEntry.expected = null;
+            overwriteDenseState.addEntry(fillerEntry);
+        }
 
         return Stream.of(
                 Arguments.of("1", writeCurrentState, nullEntry),
                 Arguments.of("2", writeCurrentState, emptyEntry),
                 Arguments.of("3.1", writeCurrentState, leThanSSEntry),
                 Arguments.of("3.2", writeNextState, leThanSSEntry),
+                Arguments.of("3.3", overwriteDenseState, leThanSSEntry),
                 Arguments.of("4", writeCurrentState, gtThanSSEntry)
         );
     }
@@ -92,7 +104,7 @@ class MyReadCacheTest {
             }
 
             // Put all the entries needed to reach the state configuration
-            if (state.type == StateType.WRITE_NEXT) {
+            if (state.type != StateType.WRITE_CURRENT) {
                 for (Entry entry : state.entryList) {
                     sutPutEntry(sut, entry);
                 }
@@ -108,7 +120,7 @@ class MyReadCacheTest {
 
             // Check if the entries needed to reach the state configuration have been put correctly
             ByteBuf prevExpectedBuf, prevActualBuf;
-            if (state.type == StateType.WRITE_NEXT) {
+            if (state.type != StateType.WRITE_CURRENT) {
                 for (Entry entry : state.entryList) {
                     prevExpectedBuf = byteBufFromEntryExpected(entry);
                     prevActualBuf = sutGetEntry(sut, entry);
@@ -120,14 +132,14 @@ class MyReadCacheTest {
     }
 
     protected enum StateType {
-        WRITE_CURRENT, WRITE_NEXT,
+        WRITE_CURRENT, WRITE_NEXT, OVERWRITE_DENSE,
     }
 
     protected static class Entry {
         protected final int ledgerId;
         protected final int entryId;
         protected final String content;
-        protected final String expected;
+        protected String expected;
 
         public Entry(int ledgerId, int entryId, String content) {
             this.ledgerId = ledgerId;
