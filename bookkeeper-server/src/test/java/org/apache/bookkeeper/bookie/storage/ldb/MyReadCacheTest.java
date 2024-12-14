@@ -34,7 +34,11 @@ class MyReadCacheTest {
     private static Stream<Arguments> putTestArguments() {
         Entry nullEntry = new Entry(1, 1, null);
         Entry emptyEntry = new Entry(1, 1, "");
-        Entry nonEmptyEntry = new Entry(1, 1, "test");
+        String leThanSS = buildStringOfLength(MAX_SEGMENT_SIZE, 'a');
+        Entry leThanSSEntry = new Entry(1, 1, leThanSS);
+
+        String gtThanSS = buildStringOfLength(MAX_SEGMENT_SIZE+1, 'a');
+        Entry gtThanSSEntry = new Entry(1, 1, gtThanSS, null);
 
         Entry fillerEntry = new Entry(1, 2, buildStringOfLength(MAX_SEGMENT_SIZE, 'a'));
 
@@ -45,17 +49,25 @@ class MyReadCacheTest {
         return Stream.of(
                 Arguments.of("1", writeCurrentState, nullEntry),
                 Arguments.of("2", writeCurrentState, emptyEntry),
-                Arguments.of("3.1", writeCurrentState, nonEmptyEntry),
-                Arguments.of("3.2", writeNextState, nonEmptyEntry)
+                Arguments.of("3.1", writeCurrentState, leThanSSEntry),
+                Arguments.of("3.2", writeNextState, leThanSSEntry),
+                Arguments.of("4", writeCurrentState, gtThanSSEntry)
         );
     }
 
-    private ByteBuf byteBufFromEntry(Entry entry) {
+    private ByteBuf byteBufFromEntryContent(Entry entry) {
         return Unpooled.wrappedBuffer(entry.content.getBytes());
     }
 
+    private ByteBuf byteBufFromEntryExpected(Entry entry) {
+        if (entry.expected == null)
+            return null;
+        return Unpooled.wrappedBuffer(entry.expected.getBytes());
+    }
+
+
     private void sutPutEntry(ReadCache sut, Entry entry) {
-        sut.put(entry.ledgerId, entry.entryId, byteBufFromEntry(entry));
+        sut.put(entry.ledgerId, entry.entryId, byteBufFromEntryContent(entry));
     }
 
     private ByteBuf sutGetEntry(ReadCache sut, Entry entry) {
@@ -90,7 +102,7 @@ class MyReadCacheTest {
             sutPutEntry(sut, testEntry);
 
             // Check if the test entry has been put correctly
-            ByteBuf expectedBuf = byteBufFromEntry(testEntry);
+            ByteBuf expectedBuf = byteBufFromEntryExpected(testEntry);
             ByteBuf actualBuf = sutGetEntry(sut, testEntry);
             Assertions.assertEquals(expectedBuf, actualBuf);
 
@@ -98,7 +110,7 @@ class MyReadCacheTest {
             ByteBuf prevExpectedBuf, prevActualBuf;
             if (state.type == StateType.WRITE_NEXT) {
                 for (Entry entry : state.entryList) {
-                    prevExpectedBuf = byteBufFromEntry(entry);
+                    prevExpectedBuf = byteBufFromEntryExpected(entry);
                     prevActualBuf = sutGetEntry(sut, entry);
                     Assertions.assertEquals(prevExpectedBuf, prevActualBuf);
                 }
@@ -115,11 +127,20 @@ class MyReadCacheTest {
         protected final int ledgerId;
         protected final int entryId;
         protected final String content;
+        protected final String expected;
 
         public Entry(int ledgerId, int entryId, String content) {
             this.ledgerId = ledgerId;
             this.entryId = entryId;
             this.content = content;
+            this.expected = content;
+        }
+
+        public Entry(int ledgerId, int entryId, String content, String expected) {
+            this.ledgerId = ledgerId;
+            this.entryId = entryId;
+            this.content = content;
+            this.expected = expected;
         }
     }
 
