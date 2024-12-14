@@ -591,6 +591,7 @@
                                 <avoidCallsTo>org.apache.commons.logging</avoidCallsTo>
                             </avoidCallsTo>
                             <excludedMethods>
+                                <excludedMethod>get</excludedMethod>
                                 <excludedMethod>close</excludedMethod>
                                 <excludedMethod>hasEntry</excludedMethod>
                                 <excludedMethod>count</excludedMethod>
