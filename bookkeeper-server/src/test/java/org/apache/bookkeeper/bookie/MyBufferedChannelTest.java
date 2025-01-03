@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
@@ -19,10 +20,10 @@ import java.util.stream.Stream;
 public class MyBufferedChannelTest {
 
     private static final Logger logger = LoggerFactory.getLogger(MyBufferedChannelTest.class);
-    private static final char FILE_CHAR = 'F';
+    private static final byte FILE_BYTE = (byte) 'F';
     private static final int FILE_SIZE = 1024;
-    private static final char READ_CHAR = 'R';
-    private static final char WRITE_CHAR = 'W';
+    private static final byte READ_BYTE = (byte) 'R';
+    private static final byte WRITE_BYTE = (byte) 'W';
 
     private static Stream<Arguments> readTestArguments() {
         Configuration allEmpty = new Configuration(BufferState.EMPTY, BufferState.EMPTY, BufferState.EMPTY);
@@ -82,8 +83,17 @@ public class MyBufferedChannelTest {
         logger.info(testID);
 
         Configurer configurer = new BlackBoxConfigurer();
-
         configurer.setup(testState);
+
+        String loggerMsg = String.format(
+                "destSize: %d, pos: %d, length: %d, expectedLen: %s, expectedFill: %s",
+                testState.dest.capacity(),
+                testState.pos,
+                testState.length,
+                testState.expectedBuffer == null ? "null" : testState.expectedBuffer.toString(StandardCharsets.UTF_8).length(),
+                testState.expectedBuffer == null ? "null" : testState.expectedBuffer.toString(StandardCharsets.UTF_8).substring(0, 1)
+        );
+        logger.info(loggerMsg);
     }
 
     protected enum BufferState {
@@ -119,6 +129,9 @@ public class MyBufferedChannelTest {
             /* Create the file, the RandomAccess and the channel */
             testState.fileBundle = new FileBundle(null);
 
+            /* Configure the environment */
+            this.configure(testState);
+
             /* Initialize the dest buffer */
             int destSize;
             switch (testState.destState) {
@@ -136,7 +149,85 @@ public class MyBufferedChannelTest {
             }
             testState.dest = ByteBufAllocator.DEFAULT.buffer(destSize);
 
-            this.configure(testState);
+            /* Set up the position */
+            switch (testState.posState) {
+                case BEFORE_BEGIN:
+                    testState.pos = -1;
+                    break;
+                case AT_BEGIN:
+                    testState.pos = 0;
+                    break;
+                case BW_BEGIN_AND_END:
+                    testState.pos = FILE_SIZE - 1;
+                    break;
+                case AT_END:
+                    testState.pos = FILE_SIZE;
+                    break;
+                case AFTER_END:
+                    testState.pos = FILE_SIZE + 1;
+                    break;
+            }
+
+            /* Set up the length */
+            switch (testState.lengthState) {
+                case LESS_THAN_ZERO:
+                    testState.length = -1;
+                    break;
+                case ZERO:
+                    testState.length = 0;
+                    break;
+                case BW_0_AND_MIN_OF_CS:
+                    testState.length = Math.min(destSize, FILE_SIZE) - 1;
+                    break;
+                case MIN_OF_CS:
+                    testState.length = Math.min(destSize, FILE_SIZE);
+                    break;
+                case BW_MIN_AND_MAX_OF_CS:
+                    testState.length = Math.max(destSize, FILE_SIZE) - 1;
+                    break;
+                case MAX_OF_CS:
+                    testState.length = Math.max(destSize, FILE_SIZE);
+                    break;
+                case MORE_THAN_MAX_OF_CS:
+                    testState.length = Math.max(destSize, FILE_SIZE) + 1;
+                    break;
+            }
+
+            int expectedBufferSize;
+            byte expectedBufferFill;
+            ByteBuf expectedBuffer;
+            int posSub = testState.pos < 0 ? (int) -testState.pos : (int) testState.pos;
+            switch (testState.expectedState) {
+                case TOTAL_FILE:
+                    expectedBufferSize = destSize;
+                    expectedBufferFill = FILE_BYTE;
+                    break;
+                case PARTIAL_FILE:
+                    expectedBufferSize = Math.min(destSize, FILE_SIZE) - posSub;
+                    expectedBufferFill = FILE_BYTE;
+                    break;
+                case PARTIAL_READ:
+                    expectedBufferSize = Math.min(destSize, FILE_SIZE) - posSub;
+                    expectedBufferFill = READ_BYTE;
+                    break;
+                case TOTAL_WRITE:
+                    expectedBufferSize = destSize;
+                    expectedBufferFill = WRITE_BYTE;
+                    break;
+                default:
+                    expectedBufferSize = -1;
+                    expectedBufferFill = -1;
+            }
+            if (expectedBufferSize != -1) {
+                expectedBuffer = Unpooled.buffer(expectedBufferSize);
+                for (int i = 0; i < expectedBufferSize; i++) {
+                    expectedBuffer.writeByte(expectedBufferFill);
+                }
+                testState.expectedBuffer = expectedBuffer;
+            } else {
+                testState.expectedBuffer = null;
+            }
+
         }
 
         public void createSUT(TestState testState) throws IOException {
@@ -154,7 +245,7 @@ public class MyBufferedChannelTest {
 
             /* Set up the file for read buffer */
             if (testState.configuration.readBufferState == BufferState.NON_EMPTY) {
-                readFileBuffer = testState.fileBundle.fillFileChannel((byte) READ_CHAR, FILE_SIZE, false);
+                readFileBuffer = testState.fileBundle.fillFileChannel(READ_BYTE, FILE_SIZE, false);
 
                 /* Assert that the file has been written correctly */
                 ByteBuffer tempReadBuffer = ByteBuffer.allocate(FILE_SIZE);
@@ -165,13 +256,13 @@ public class MyBufferedChannelTest {
                 tempReadBuffer.flip();
 
                 assert readFileBuffer.capacity() == tempReadBuffer.capacity();
-                for (int i = 0; i < readFileBuffer.capacity(); i++){
+                for (int i = 0; i < readFileBuffer.capacity(); i++) {
                     assert readFileBuffer.get(i) == tempReadBuffer.get(i);
                 }
             }
 
             /* Create the SUT */
-            createSUT(testState);
+            this.createSUT(testState);
             BufferedChannel sut = testState.sut;
 
             /* Set up the SUT read buffer */
@@ -191,7 +282,7 @@ public class MyBufferedChannelTest {
                 Path filePath = testState.fileBundle.file.toPath();
                 Files.newBufferedWriter(filePath).close();
             } else {
-                ByteBuffer tempFileBuffer = testState.fileBundle.fillFileChannel((byte) FILE_CHAR, FILE_SIZE, true);
+                ByteBuffer tempFileBuffer = testState.fileBundle.fillFileChannel(FILE_BYTE, FILE_SIZE, true);
 
                 /* Assert that the file has been written correctly */
                 ByteBuffer tempReadBuffer = ByteBuffer.allocate(FILE_SIZE);
@@ -206,7 +297,7 @@ public class MyBufferedChannelTest {
             if (testState.configuration.writeBufferState == BufferState.NON_EMPTY) {
                 ByteBuf writeBuffer = Unpooled.buffer(FILE_SIZE);
                 for (int i = 0; i < FILE_SIZE; i++) {
-                    writeBuffer.writeByte((byte) WRITE_CHAR);
+                    writeBuffer.writeByte(WRITE_BYTE);
                 }
                 sut.write(writeBuffer);
 
@@ -235,9 +326,12 @@ public class MyBufferedChannelTest {
         LengthState lengthState;
         ExpectedState expectedState;
 
+        BufferedChannel sut;
         FileBundle fileBundle;
         ByteBuf dest;
-        BufferedChannel sut;
+        long pos;
+        int length;
+        ByteBuf expectedBuffer;
 
         public TestState(Configuration configuration, DestState destState, PosState posState, LengthState lengthState, ExpectedState expectedState) {
             this.configuration = configuration;
