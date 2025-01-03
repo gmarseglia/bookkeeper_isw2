@@ -109,6 +109,8 @@ public class MyBufferedChannelTest {
     protected interface Configurer {
         void setup(TestState testState) throws IOException;
 
+        void createSUT(TestState testState) throws IOException;
+
         void configure(TestState testState) throws IOException;
     }
 
@@ -116,9 +118,6 @@ public class MyBufferedChannelTest {
         public void setup(TestState testState) throws IOException {
             /* Create the file, the RandomAccess and the channel */
             testState.fileBundle = new FileBundle(null);
-
-            /* Create the BufferedChannel class */
-            testState.sut = new BufferedChannel(ByteBufAllocator.DEFAULT, testState.fileBundle.fileChannel, FILE_SIZE + 1, FILE_SIZE + 1);
 
             /* Initialize the dest buffer */
             int destSize;
@@ -139,14 +138,69 @@ public class MyBufferedChannelTest {
 
             this.configure(testState);
         }
+
+        public void createSUT(TestState testState) throws IOException {
+            /* Create the BufferedChannel class */
+            testState.sut = new BufferedChannel(ByteBufAllocator.DEFAULT, testState.fileBundle.fileChannel, FILE_SIZE + 1, FILE_SIZE + 1);
+        }
     }
 
     protected static class BlackBoxConfigurer extends BaseConfigurer {
 
         @Override
         public void configure(TestState testState) throws IOException {
-            BufferedChannel sut = testState.sut;
             FileChannel fileChannel = testState.fileBundle.fileChannel;
+            ByteBuffer readFileBuffer = null;
+
+            /* Set up the file for read buffer */
+            if (testState.configuration.readBufferState == BufferState.NON_EMPTY) {
+                readFileBuffer = testState.fileBundle.fillFileChannel((byte) READ_CHAR, FILE_SIZE, false);
+
+                /* Assert that the file has been written correctly */
+                ByteBuffer tempReadBuffer = ByteBuffer.allocate(FILE_SIZE);
+                long prevPos = fileChannel.position();
+                fileChannel.position(0);
+                fileChannel.read(tempReadBuffer);
+                fileChannel.position(prevPos);
+                tempReadBuffer.flip();
+
+                assert readFileBuffer.capacity() == tempReadBuffer.capacity();
+                for (int i = 0; i < readFileBuffer.capacity(); i++){
+                    assert readFileBuffer.get(i) == tempReadBuffer.get(i);
+                }
+            }
+
+            /* Create the SUT */
+            createSUT(testState);
+            BufferedChannel sut = testState.sut;
+
+            /* Set up the SUT read buffer */
+            if (testState.configuration.readBufferState == BufferState.NON_EMPTY) {
+                ByteBuf tempReadBuffer = Unpooled.buffer(FILE_SIZE);
+                sut.read(tempReadBuffer, 0, FILE_SIZE);
+
+                // Assert that SUT has read what has been written to file
+                assert readFileBuffer != null;
+                readFileBuffer.position(0);
+                assert readFileBuffer.compareTo(tempReadBuffer.nioBuffer()) == 0;
+                tempReadBuffer.release();
+            }
+
+            if (testState.configuration.fileChannelState == BufferState.EMPTY) {
+                // Empty the file
+                Path filePath = testState.fileBundle.file.toPath();
+                Files.newBufferedWriter(filePath).close();
+            } else {
+                ByteBuffer tempFileBuffer = testState.fileBundle.fillFileChannel((byte) FILE_CHAR, FILE_SIZE, true);
+
+                /* Assert that the file has been written correctly */
+                ByteBuffer tempReadBuffer = ByteBuffer.allocate(FILE_SIZE);
+                fileChannel.read(tempReadBuffer);
+                tempReadBuffer.position(0);
+                tempFileBuffer.flip();
+                tempFileBuffer.position(0);
+                assert tempFileBuffer.compareTo(tempReadBuffer) == 0;
+            }
 
             /* Set up the SUT write buffer */
             if (testState.configuration.writeBufferState == BufferState.NON_EMPTY) {
@@ -161,53 +215,6 @@ public class MyBufferedChannelTest {
                 writeBuffer.release();
             }
 
-            /* Set up the SUT read buffer */
-            if (testState.configuration.readBufferState == BufferState.NON_EMPTY) {
-                ByteBuffer tempFileBuffer = ByteBuffer.allocate(FILE_SIZE);
-                for (int i = 0; i < FILE_SIZE; i++) {
-                    tempFileBuffer.put((byte) READ_CHAR);
-                }
-                tempFileBuffer.flip();
-                int writtenBytes = fileChannel.write(tempFileBuffer);
-                fileChannel.force(true);
-                assert writtenBytes == FILE_SIZE;
-                // fileChannel.position(0);
-
-                sut = new BufferedChannel(ByteBufAllocator.DEFAULT, testState.fileBundle.fileChannel, FILE_SIZE + 1, FILE_SIZE + 1);
-
-                ByteBuf tempReadBuffer = Unpooled.buffer(FILE_SIZE);
-                sut.read(tempReadBuffer, 0, FILE_SIZE);
-
-                // Assert that SUT has read what has been written to file
-                tempFileBuffer.position(0);
-                assert tempFileBuffer.compareTo(tempReadBuffer.nioBuffer()) == 0;
-                tempReadBuffer.release();
-
-                // Empty the file
-                Path filePath = testState.fileBundle.file.toPath();
-                Files.newBufferedWriter(filePath).close();
-            }
-
-            /* Set up the file */
-            if (testState.configuration.fileChannelState == BufferState.NON_EMPTY) {
-                ByteBuffer tempFileBuffer = ByteBuffer.allocate(FILE_SIZE);
-                for (int i = 0; i < FILE_SIZE; i++) {
-                    tempFileBuffer.put((byte) FILE_CHAR);
-                }
-                tempFileBuffer.flip();
-                int writtenBytes = fileChannel.write(tempFileBuffer);
-                fileChannel.force(true);
-                assert writtenBytes == FILE_SIZE;
-                fileChannel.position(0);
-
-                ByteBuffer tempReadBuffer = ByteBuffer.allocate(FILE_SIZE);
-                fileChannel.read(tempReadBuffer);
-                fileChannel.position(0);
-                tempReadBuffer.flip();
-
-                tempFileBuffer.position(0);
-                assert tempFileBuffer.compareTo(tempReadBuffer) == 0;
-            }
         }
     }
 
