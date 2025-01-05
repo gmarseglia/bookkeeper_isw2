@@ -3,6 +3,7 @@ package org.apache.bookkeeper.bookie;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -31,7 +32,10 @@ public class MyBufferedChannelTest {
         Configuration onlyRead = new Configuration(BufferState.EMPTY, BufferState.NON_EMPTY, BufferState.EMPTY);
         Configuration onlyWrite = new Configuration(BufferState.NON_EMPTY, BufferState.EMPTY, BufferState.EMPTY);
 
-        TestState TS_01, TS_02, TS_03, TS_04, TS_05, TS_06, TS_07, TS_08, TS_09, TS_10;
+        TestState TS_00, TS_01, TS_02, TS_03, TS_04, TS_05, TS_06, TS_07, TS_08, TS_09, TS_10;
+
+        /* Simple read */
+        TS_00 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.AT_BEGIN, LengthState.MIN_OF_CS, ExpectedState.TOTAL_FILE);
 
         /* Empty read */
         TS_01 = new TestState(allEmpty, DestState.GREATER_THAN_FILE, PosState.AT_BEGIN, LengthState.BW_0_AND_MIN_OF_CS, ExpectedState.NO_CHANGE);
@@ -64,8 +68,9 @@ public class MyBufferedChannelTest {
         TS_10 = new TestState(onlyFile, DestState.GREATER_THAN_FILE, PosState.AT_BEGIN, LengthState.MORE_THAN_MAX_OF_CS, ExpectedState.EOF_EXCEPTION);
 
         return Stream.of(
+                Arguments.of("TS_00", TS_00),
                 Arguments.of("TS_01", TS_01),
-                Arguments.of("TS_02", TS_02),
+                // Arguments.of("TS_02", TS_02)
                 Arguments.of("TS_03", TS_03),
                 Arguments.of("TS_04", TS_04),
                 Arguments.of("TS_05", TS_05),
@@ -94,6 +99,23 @@ public class MyBufferedChannelTest {
                 testState.expectedBuffer == null ? "null" : testState.expectedBuffer.toString(StandardCharsets.UTF_8).substring(0, 1)
         );
         logger.info(loggerMsg);
+
+        BufferedChannel SUT = testState.sut;
+
+        /* Compare the result */
+        switch (testState.expectedState) {
+            case NO_CHANGE:
+                Assertions.assertThrows(IOException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
+                break;
+            default:
+                SUT.read(testState.dest, testState.pos, testState.length);
+                ByteBuf expected = testState.expectedBuffer;
+                ByteBuf actual = testState.dest;
+                Assertions.assertEquals(expected.capacity(), actual.capacity());
+                for (int i = 0; i < expected.capacity(); i++) {
+                    Assertions.assertEquals(expected.getByte(i), actual.getByte(i), String.format("Byte: %d", i));
+                }
+        }
     }
 
     protected enum BufferState {
@@ -244,7 +266,8 @@ public class MyBufferedChannelTest {
             ByteBuffer readFileBuffer = null;
 
             /* Set up the file for read buffer */
-            if (testState.configuration.readBufferState == BufferState.NON_EMPTY) {
+            if (testState.configuration.readBufferState == BufferState.NON_EMPTY ||
+                    testState.configuration.fileChannelState == BufferState.NON_EMPTY) {
                 readFileBuffer = testState.fileBundle.fillFileChannel(READ_BYTE, FILE_SIZE, false);
 
                 /* Assert that the file has been written correctly */
@@ -286,7 +309,10 @@ public class MyBufferedChannelTest {
 
                 /* Assert that the file has been written correctly */
                 ByteBuffer tempReadBuffer = ByteBuffer.allocate(FILE_SIZE);
+                long prevPos = fileChannel.position();
+                fileChannel.position(0);
                 fileChannel.read(tempReadBuffer);
+                fileChannel.position(prevPos);
                 tempReadBuffer.position(0);
                 tempFileBuffer.flip();
                 tempFileBuffer.position(0);

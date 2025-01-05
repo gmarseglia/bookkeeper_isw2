@@ -32,6 +32,7 @@ public class FileBundle {
             tempFileBuffer.put(fillByte);
         }
         tempFileBuffer.flip();
+        fileChannel.position(0);
         int writtenBytes = fileChannel.write(tempFileBuffer);
         fileChannel.force(true);
         assert writtenBytes == size;
