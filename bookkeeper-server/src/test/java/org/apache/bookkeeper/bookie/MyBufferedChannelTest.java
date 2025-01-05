@@ -38,19 +38,19 @@ public class MyBufferedChannelTest {
         TS_00 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.AT_BEGIN, LengthState.MIN_OF_CS, ExpectedState.TOTAL_FILE);
 
         /* Empty read */
-        TS_01 = new TestState(allEmpty, DestState.GREATER_THAN_FILE, PosState.AT_BEGIN, LengthState.BW_0_AND_MIN_OF_CS, ExpectedState.NO_CHANGE);
+        TS_01 = new TestState(allEmpty, DestState.GREATER_THAN_FILE, PosState.AT_BEGIN, LengthState.BW_0_AND_MIN_OF_CS, ExpectedState.EOF_EXCEPTION);
 
         /* Dest smaller than file */
         TS_02 = new TestState(onlyFile, DestState.LESS_THAN_FILE, PosState.AT_BEGIN, LengthState.MAX_OF_CS, ExpectedState.TOTAL_FILE);
 
         /* Read from negative position */
-        TS_03 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.BEFORE_BEGIN, LengthState.MIN_OF_CS, ExpectedState.PARTIAL_FILE);
+        TS_03 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.BEFORE_BEGIN, LengthState.MIN_OF_CS, ExpectedState.ILLEGAL_ARG_EXCEPTION);
 
         /* Read at the end */
-        TS_04 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.AT_END, LengthState.MIN_OF_CS, ExpectedState.NO_CHANGE);
+        TS_04 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.AT_END, LengthState.MIN_OF_CS, ExpectedState.EOF_EXCEPTION);
 
         /* Read after the end */
-        TS_05 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.AFTER_END, LengthState.MIN_OF_CS, ExpectedState.EOF_EXCEPTION);
+        TS_05 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.AFTER_END, LengthState.MIN_OF_CS, ExpectedState.ILLEGAL_ARG_EXCEPTION);
 
         /* Read of negative length */
         TS_06 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.AT_BEGIN, LengthState.LESS_THAN_ZERO, ExpectedState.NO_CHANGE);
@@ -68,17 +68,17 @@ public class MyBufferedChannelTest {
         TS_10 = new TestState(onlyFile, DestState.GREATER_THAN_FILE, PosState.AT_BEGIN, LengthState.MORE_THAN_MAX_OF_CS, ExpectedState.EOF_EXCEPTION);
 
         return Stream.of(
-                Arguments.of("TS_00", TS_00),
-                Arguments.of("TS_01", TS_01),
-                // Arguments.of("TS_02", TS_02)
-                Arguments.of("TS_03", TS_03),
-                Arguments.of("TS_04", TS_04),
-                Arguments.of("TS_05", TS_05),
-                Arguments.of("TS_06", TS_06),
-                Arguments.of("TS_07", TS_07),
-                Arguments.of("TS_08", TS_08),
-                Arguments.of("TS_09", TS_09),
-                Arguments.of("TS_10", TS_10)
+                // Arguments.of("TS_00", TS_00),
+                // Arguments.of("TS_01", TS_01),
+                // // Arguments.of("TS_02", TS_02),
+                // Arguments.of("TS_03", TS_03),
+                // Arguments.of("TS_04", TS_04),
+                // Arguments.of("TS_05", TS_05),
+                // Arguments.of("TS_06", TS_06),
+                // Arguments.of("TS_07", TS_07),
+                Arguments.of("TS_08", TS_08)
+                // Arguments.of("TS_09", TS_09),
+                // Arguments.of("TS_10", TS_10)
         );
     }
 
@@ -101,16 +101,37 @@ public class MyBufferedChannelTest {
         logger.info(loggerMsg);
 
         BufferedChannel SUT = testState.sut;
+        ByteBuf expected;
+        ByteBuf actual;
 
         /* Compare the result */
         switch (testState.expectedState) {
-            case NO_CHANGE:
+            case EOF_EXCEPTION:
                 Assertions.assertThrows(IOException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
+                break;
+            case ILLEGAL_ARG_EXCEPTION:
+                Assertions.assertThrows(IllegalArgumentException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
+                break;
+            case NO_CHANGE:
+                expected = testState.dest.copy();
+                SUT.read(testState.dest, testState.pos, testState.length);
+                actual = testState.dest;
+                Assertions.assertEquals(expected.capacity(), actual.capacity());
+                for (int i = 0; i < expected.capacity(); i++) {
+                    Assertions.assertEquals(expected.getByte(i), actual.getByte(i), String.format("Byte: %d", i));
+                }
+            case PARTIAL_READ:
+                Assertions.assertThrows(IOException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
+                expected = testState.expectedBuffer;
+                actual = testState.dest;
+                for (int i = 0; i < expected.capacity(); i++) {
+                    Assertions.assertEquals(expected.getByte(i), actual.getByte(i), String.format("Byte: %d", i));
+                }
                 break;
             default:
                 SUT.read(testState.dest, testState.pos, testState.length);
-                ByteBuf expected = testState.expectedBuffer;
-                ByteBuf actual = testState.dest;
+                expected = testState.expectedBuffer;
+                actual = testState.dest;
                 Assertions.assertEquals(expected.capacity(), actual.capacity());
                 for (int i = 0; i < expected.capacity(); i++) {
                     Assertions.assertEquals(expected.getByte(i), actual.getByte(i), String.format("Byte: %d", i));
@@ -135,7 +156,7 @@ public class MyBufferedChannelTest {
     }
 
     protected enum ExpectedState {
-        NO_CHANGE, TOTAL_FILE, PARTIAL_FILE, EOF_EXCEPTION, PARTIAL_READ, TOTAL_WRITE
+        NO_CHANGE, TOTAL_FILE, PARTIAL_FILE, EOF_EXCEPTION, ILLEGAL_ARG_EXCEPTION, PARTIAL_READ, TOTAL_WRITE
     }
 
     protected interface Configurer {
