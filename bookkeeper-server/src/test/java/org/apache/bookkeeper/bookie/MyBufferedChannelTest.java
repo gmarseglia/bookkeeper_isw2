@@ -70,7 +70,7 @@ public class MyBufferedChannelTest {
         return Stream.of(
                 // Arguments.of("TS_00", TS_00),
                 // Arguments.of("TS_01", TS_01),
-                // // Arguments.of("TS_02", TS_02),
+                Arguments.of("TS_02", TS_02),
                 // Arguments.of("TS_03", TS_03),
                 // Arguments.of("TS_04", TS_04),
                 // Arguments.of("TS_05", TS_05),
@@ -121,7 +121,9 @@ public class MyBufferedChannelTest {
                     Assertions.assertEquals(expected.getByte(i), actual.getByte(i), String.format("Byte: %d", i));
                 }
             case PARTIAL_READ:
-                Assertions.assertThrows(IOException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
+                IOException ioException = Assertions.assertThrows(IOException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
+                Assertions.assertEquals("Read past EOF", ioException.getMessage());
+                logger.info(String.format("IOException received, .getMessage: %s", ioException.getMessage()));
                 expected = testState.expectedBuffer;
                 actual = testState.dest;
                 for (int i = 0; i < expected.capacity(); i++) {
