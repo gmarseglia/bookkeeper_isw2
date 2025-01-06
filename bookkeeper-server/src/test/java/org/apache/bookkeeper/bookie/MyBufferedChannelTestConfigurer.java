@@ -36,11 +36,11 @@ public class MyBufferedChannelTestConfigurer {
             case LESS_THAN_ZERO:
                 pos = -1;
                 break;
-            case LESS_THAN_AVAILABLE:
+            case LESS_EQUAL_THAN_AVAILABLE:
                 pos = 0;
                 break;
-            case GREATER_EQUAL_THAN_AVAILABLE:
-                pos = available;
+            case GREATER_THAN_AVAILABLE:
+                pos = available + 1;
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.posState);
@@ -48,7 +48,7 @@ public class MyBufferedChannelTestConfigurer {
         testState.pos = pos;
 
         /* Compute readable bytes */
-        int readable = available - pos;
+        int readable = Math.max(available - pos, 0);
 
         /* Set up the length */
         int length;
@@ -56,11 +56,14 @@ public class MyBufferedChannelTestConfigurer {
             case LESS_THAN_ZERO:
                 length = -1;
                 break;
+            case EQUAL_AS_ZERO:
+                length = 0;
+                break;
             case LESS_EQUAL_THAN_READABLE:
-                length = readable;
+                length = Math.max(readable, 1);
                 break;
             case GREATER_THAN_READABLE:
-                length = readable + 1;
+                length = Math.max(readable + 1, 1);
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.lengthState);
@@ -71,10 +74,10 @@ public class MyBufferedChannelTestConfigurer {
         int destSize;
         switch (testState.destState) {
             case LESS_THAN_LENGTH:
-                destSize = length - 1;
+                destSize = Math.max(length - 1, 0);
                 break;
             case GREATER_EQUAL_THAN_LENGTH:
-                destSize = length;
+                destSize = Math.max(length, 0);
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.destState);
@@ -104,6 +107,9 @@ public class MyBufferedChannelTestConfigurer {
                 expectedBufferFill = FILE_BYTE;
                 expectedBufferSize = readable;
                 break;
+            case EMPTY:
+                expectedBufferFill = 0;
+                expectedBufferSize = 0;
             case EOF:
             case ILLEGAL_ARG:
                 expectedBufferFill = -1;
@@ -191,17 +197,46 @@ public class MyBufferedChannelTestConfigurer {
 
         /* Set up the SUT write buffer */
         if (testState.configuration.writeBufferState == MyBufferedChannelTest.BufferState.NON_EMPTY) {
+            /* Read from fileChannel before and after to ensure that the file has not been changed */
+            ByteBuffer fileBeforeBuffer, fileAfterBuffer;
+            fileBeforeBuffer = ByteBuffer.allocate(FILE_SIZE);
+            fileAfterBuffer = ByteBuffer.allocate(FILE_SIZE);
+
+            int byteRead = readFromFileChannel(fileChannel, fileBeforeBuffer);
+
+            assert sut.position() == 0;
             ByteBuf writeBuffer = Unpooled.buffer(FILE_SIZE);
             for (int i = 0; i < FILE_SIZE; i++) {
                 writeBuffer.writeByte(WRITE_BYTE);
             }
             sut.write(writeBuffer);
 
+            readFromFileChannel(fileChannel, fileAfterBuffer);
+
+            /* Assert file has not changes */
+            for (int i = 0; i < byteRead; i++) {
+                assert fileBeforeBuffer.get(i) == fileAfterBuffer.get(i);
+            }
+            /* Assert something has been read */
             assert FILE_SIZE == sut.getNumOfBytesInWriteBuffer();
-            assert fileChannel.size() == 0;
+
+            /* Assert that what has been read is correct */
+            for(int i = 0; i < FILE_SIZE; i++){
+                assert sut.writeBuffer.getByte(i) == writeBuffer.getByte(1);
+            }
+
             writeBuffer.release();
         }
 
+    }
+
+    private int readFromFileChannel(FileChannel fileChannel, ByteBuffer buffer) throws IOException {
+        long prevPos = fileChannel.position();
+        fileChannel.position(0);
+        int read = fileChannel.read(buffer);
+        fileChannel.position(prevPos);
+        buffer.flip();
+        return read;
     }
 
 }
