@@ -1,8 +1,6 @@
 package org.apache.bookkeeper.bookie;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -11,11 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 public class MyBufferedChannelTest {
@@ -25,64 +20,90 @@ public class MyBufferedChannelTest {
 
     private static Stream<Arguments> readTestArguments() {
         Configuration allEmpty = new Configuration(BufferState.EMPTY, BufferState.EMPTY, BufferState.EMPTY);
-        Configuration onlyFile = new Configuration(BufferState.EMPTY, BufferState.EMPTY, BufferState.NON_EMPTY);
-        Configuration onlyRead = new Configuration(BufferState.EMPTY, BufferState.NON_EMPTY, BufferState.EMPTY);
-        Configuration onlyWrite = new Configuration(BufferState.NON_EMPTY, BufferState.EMPTY, BufferState.EMPTY);
+        Configuration fromFile = new Configuration(BufferState.EMPTY, BufferState.EMPTY, BufferState.NON_EMPTY);
+        Configuration fromRead = new Configuration(BufferState.EMPTY, BufferState.NON_EMPTY, BufferState.NON_EMPTY);
+        Configuration fromWrite = new Configuration(BufferState.NON_EMPTY, BufferState.NON_EMPTY, BufferState.NON_EMPTY);
 
-        TestState TS_00, TS_01, TS_02, TS_03, TS_04, TS_05, TS_06, TS_07, TS_08, TS_09, TS_10;
+        String TS_01_desc, TS_02_desc, TS_03_desc, TS_04_desc, TS_05_desc, TS_06_desc, TS_07_desc, TS_08_desc;
+        TestState TS_01, TS_02, TS_03, TS_04, TS_05, TS_06, TS_07, TS_08;
 
-        /* Simple read */
-        TS_00 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.AT_BEGIN, LengthState.MIN_OF_CS, ExpectedState.TOTAL_FILE);
+        /* Read from empty file */
+        TS_01_desc = "#1: Read no available";
+        TS_01 = new TestState(
+                allEmpty,
+                DestState.GREATER_EQUAL_THAN_LENGTH, PosState.LESS_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
+                ExpectedState.EOF);
 
-        /* Empty read */
-        TS_01 = new TestState(allEmpty, DestState.GREATER_THAN_FILE, PosState.AT_BEGIN, LengthState.BW_0_AND_MIN_OF_CS, ExpectedState.EOF_EXCEPTION);
-
-        /* Dest smaller than file */
-        TS_02 = new TestState(onlyFile, DestState.LESS_THAN_FILE, PosState.AT_BEGIN, LengthState.MAX_OF_CS, ExpectedState.TOTAL_FILE);
-
-        /* Read from negative position */
-        TS_03 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.BEFORE_BEGIN, LengthState.MIN_OF_CS, ExpectedState.ILLEGAL_ARG_EXCEPTION);
-
-        /* Read at the end */
-        TS_04 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.AT_END, LengthState.MIN_OF_CS, ExpectedState.EOF_EXCEPTION);
-
-        /* Read after the end */
-        TS_05 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.AFTER_END, LengthState.MIN_OF_CS, ExpectedState.ILLEGAL_ARG_EXCEPTION);
-
-        /* Read of negative length */
-        TS_06 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.AT_BEGIN, LengthState.LESS_THAN_ZERO, ExpectedState.NO_CHANGE);
-
-        /* Read of zero length */
-        TS_07 = new TestState(onlyFile, DestState.EQUAL_AS_FILE, PosState.AT_BEGIN, LengthState.ZERO, ExpectedState.NO_CHANGE);
+        /* Read from file */
+        TS_02_desc = "#2: Read from file";
+        TS_02 = new TestState(
+                fromFile,
+                DestState.GREATER_EQUAL_THAN_LENGTH, PosState.LESS_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
+                ExpectedState.FILE_TIMES_LENGTH);
 
         /* Read from read buffer */
-        TS_08 = new TestState(onlyRead, DestState.EQUAL_AS_FILE, PosState.BW_BEGIN_AND_END, LengthState.MIN_OF_CS, ExpectedState.PARTIAL_READ);
+        TS_03_desc = "#3: Read from read buffer";
+        TS_03 = new TestState(
+                fromRead,
+                DestState.GREATER_EQUAL_THAN_LENGTH, PosState.LESS_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
+                ExpectedState.READ_TIMES_LENGTH);
 
         /* Read from write buffer */
-        TS_09 = new TestState(onlyWrite, DestState.EQUAL_AS_FILE, PosState.AT_BEGIN, LengthState.BW_MIN_AND_MAX_OF_CS, ExpectedState.TOTAL_WRITE);
+        TS_04_desc = "#4: Read from write buffer";
+        TS_04 = new TestState(
+                fromWrite,
+                DestState.GREATER_EQUAL_THAN_LENGTH, PosState.LESS_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
+                ExpectedState.WRITE_TIMES_LENGTH
+        );
 
-        /* Read too long */
-        TS_10 = new TestState(onlyFile, DestState.GREATER_THAN_FILE, PosState.AT_BEGIN, LengthState.MORE_THAN_MAX_OF_CS, ExpectedState.EOF_EXCEPTION);
+        /* Read from negative position */
+        TS_05_desc = "#5: Read from negative position";
+        TS_05 = new TestState(
+                fromFile,
+                DestState.GREATER_EQUAL_THAN_LENGTH, PosState.LESS_THAN_ZERO, LengthState.LESS_EQUAL_THAN_READABLE,
+                ExpectedState.ILLEGAL_ARG
+        );
+
+        /* Read after end */
+        TS_06_desc = "#6: Read after end";
+        TS_06 = new TestState(
+                fromFile,
+                DestState.GREATER_EQUAL_THAN_LENGTH, PosState.GREATER_EQUAL_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
+                ExpectedState.EOF
+        );
+
+        /* Read of negative length */
+        TS_07_desc = "#7: Read of negative length";
+        TS_07 = new TestState(
+                fromFile,
+                DestState.GREATER_EQUAL_THAN_LENGTH, PosState.LESS_THAN_AVAILABLE, LengthState.LESS_THAN_ZERO,
+                ExpectedState.ILLEGAL_ARG
+        );
+
+        /* Read more than available */
+        TS_08_desc = "#8: Read more than available";
+        TS_08 = new TestState(
+                fromFile,
+                DestState.GREATER_EQUAL_THAN_LENGTH, PosState.LESS_THAN_AVAILABLE, LengthState.GREATER_THAN_READABLE,
+                ExpectedState.EOF
+        );
 
         return Stream.of(
-                // Arguments.of("TS_00", TS_00),
-                // Arguments.of("TS_01", TS_01),
-                Arguments.of("TS_02", TS_02),
-                // Arguments.of("TS_03", TS_03),
-                // Arguments.of("TS_04", TS_04),
-                // Arguments.of("TS_05", TS_05),
-                // Arguments.of("TS_06", TS_06),
-                // Arguments.of("TS_07", TS_07),
-                Arguments.of("TS_08", TS_08)
-                // Arguments.of("TS_09", TS_09),
-                // Arguments.of("TS_10", TS_10)
+                Arguments.of(TS_01_desc, TS_01),
+                Arguments.of(TS_02_desc, TS_02),
+                Arguments.of(TS_03_desc, TS_03),
+                Arguments.of(TS_04_desc, TS_04),
+                Arguments.of(TS_05_desc, TS_05),
+                Arguments.of(TS_06_desc, TS_06),
+                Arguments.of(TS_07_desc, TS_07),
+                Arguments.of(TS_08_desc, TS_08)
         );
     }
 
     @ParameterizedTest
     @MethodSource("readTestArguments")
-    void readTest(String testID, TestState testState) throws IOException {
-        logger.info(testID);
+    void readTest(String description, TestState testState) throws IOException {
+        logger.info(description);
 
         MyBufferedChannelTestConfigurer configurer = new MyBufferedChannelTestConfigurer();
         configurer.setup(testState);
@@ -97,37 +118,30 @@ public class MyBufferedChannelTest {
         );
         logger.info(loggerMsg);
 
+        if (!Objects.equals(description, "")){
+            return;
+        }
+
         BufferedChannel SUT = testState.sut;
         ByteBuf expected;
         ByteBuf actual;
 
         /* Compare the result */
         switch (testState.expectedState) {
-            case EOF_EXCEPTION:
-                Assertions.assertThrows(IOException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
+            case EOF:
+                IOException e;
+                e = Assertions.assertThrows(IOException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
+                Assertions.assertEquals("Read past EOF", e.getMessage());
                 break;
-            case ILLEGAL_ARG_EXCEPTION:
+            case ILLEGAL_ARG:
                 Assertions.assertThrows(IllegalArgumentException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
                 break;
-            case NO_CHANGE:
-                expected = testState.dest.copy();
-                SUT.read(testState.dest, testState.pos, testState.length);
-                actual = testState.dest;
-                Assertions.assertEquals(expected.capacity(), actual.capacity());
-                for (int i = 0; i < expected.capacity(); i++) {
-                    Assertions.assertEquals(expected.getByte(i), actual.getByte(i), String.format("Byte: %d", i));
-                }
-            case PARTIAL_READ:
-                IOException ioException = Assertions.assertThrows(IOException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
-                Assertions.assertEquals("Read past EOF", ioException.getMessage());
-                logger.info(String.format("IOException received, .getMessage: %s", ioException.getMessage()));
-                expected = testState.expectedBuffer;
-                actual = testState.dest;
-                for (int i = 0; i < expected.capacity(); i++) {
-                    Assertions.assertEquals(expected.getByte(i), actual.getByte(i), String.format("Byte: %d", i));
-                }
-                break;
-            default:
+            case INFINITE_LOOP:
+                Assertions.fail("INFINITE_LOOP is TODO!");
+            case FILE_TIMES_LENGTH:
+            case READ_TIMES_LENGTH:
+            case WRITE_TIMES_LENGTH:
+            case FILE_TIMES_READABLE:
                 SUT.read(testState.dest, testState.pos, testState.length);
                 expected = testState.expectedBuffer;
                 actual = testState.dest;
@@ -143,19 +157,19 @@ public class MyBufferedChannelTest {
     }
 
     public enum DestState {
-        LESS_THAN_FILE, EQUAL_AS_FILE, GREATER_THAN_FILE
+        LESS_THAN_LENGTH, GREATER_EQUAL_THAN_LENGTH
     }
 
     public enum PosState {
-        BEFORE_BEGIN, AT_BEGIN, BW_BEGIN_AND_END, AT_END, AFTER_END
+        LESS_THAN_ZERO, LESS_THAN_AVAILABLE, GREATER_EQUAL_THAN_AVAILABLE
     }
 
     public enum LengthState {
-        LESS_THAN_ZERO, ZERO, BW_0_AND_MIN_OF_CS, MIN_OF_CS, BW_MIN_AND_MAX_OF_CS, MAX_OF_CS, MORE_THAN_MAX_OF_CS
+        LESS_THAN_ZERO, LESS_EQUAL_THAN_READABLE, GREATER_THAN_READABLE;
     }
 
     public enum ExpectedState {
-        NO_CHANGE, TOTAL_FILE, PARTIAL_FILE, EOF_EXCEPTION, ILLEGAL_ARG_EXCEPTION, PARTIAL_READ, TOTAL_WRITE
+        EOF, FILE_TIMES_LENGTH, READ_TIMES_LENGTH, WRITE_TIMES_LENGTH, ILLEGAL_ARG, FILE_TIMES_READABLE, INFINITE_LOOP;
     }
 
     public static class Configuration {

@@ -27,91 +27,92 @@ public class MyBufferedChannelTestConfigurer {
         /* Configure the environment */
         this.configure(testState);
 
+        /* Compute available bytes */
+        int available = FILE_SIZE;
+
+        /* Set up the position */
+        int pos;
+        switch (testState.posState) {
+            case LESS_THAN_ZERO:
+                pos = -1;
+                break;
+            case LESS_THAN_AVAILABLE:
+                pos = 0;
+                break;
+            case GREATER_EQUAL_THAN_AVAILABLE:
+                pos = available;
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + testState.posState);
+        }
+        testState.pos = pos;
+
+        /* Compute readable bytes */
+        int readable = available - pos;
+
+        /* Set up the length */
+        int length;
+        switch (testState.lengthState) {
+            case LESS_THAN_ZERO:
+                length = -1;
+                break;
+            case LESS_EQUAL_THAN_READABLE:
+                length = readable;
+                break;
+            case GREATER_THAN_READABLE:
+                length = readable + 1;
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + testState.lengthState);
+        }
+        testState.length = length;
+
         /* Initialize the dest buffer */
         int destSize;
         switch (testState.destState) {
-            case EQUAL_AS_FILE:
-                destSize = FILE_SIZE;
+            case LESS_THAN_LENGTH:
+                destSize = length - 1;
                 break;
-            case LESS_THAN_FILE:
-                destSize = FILE_SIZE - 1;
-                break;
-            case GREATER_THAN_FILE:
-                destSize = FILE_SIZE + 1;
+            case GREATER_EQUAL_THAN_LENGTH:
+                destSize = length;
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.destState);
         }
         testState.dest = ByteBufAllocator.DEFAULT.buffer(destSize);
 
-        /* Set up the position */
-        switch (testState.posState) {
-            case BEFORE_BEGIN:
-                testState.pos = -1;
-                break;
-            case AT_BEGIN:
-                testState.pos = 0;
-                break;
-            case BW_BEGIN_AND_END:
-                testState.pos = FILE_SIZE - 1;
-                break;
-            case AT_END:
-                testState.pos = FILE_SIZE;
-                break;
-            case AFTER_END:
-                testState.pos = FILE_SIZE + 1;
-                break;
-        }
-
-        /* Set up the length */
-        switch (testState.lengthState) {
-            case LESS_THAN_ZERO:
-                testState.length = -1;
-                break;
-            case ZERO:
-                testState.length = 0;
-                break;
-            case BW_0_AND_MIN_OF_CS:
-                testState.length = Math.min(destSize, FILE_SIZE) - 1;
-                break;
-            case MIN_OF_CS:
-                testState.length = Math.min(destSize, FILE_SIZE);
-                break;
-            case BW_MIN_AND_MAX_OF_CS:
-                testState.length = Math.max(destSize, FILE_SIZE) - 1;
-                break;
-            case MAX_OF_CS:
-                testState.length = Math.max(destSize, FILE_SIZE);
-                break;
-            case MORE_THAN_MAX_OF_CS:
-                testState.length = Math.max(destSize, FILE_SIZE) + 1;
-                break;
-        }
+        /* Compute the expected buffer */
 
         int expectedBufferSize;
         byte expectedBufferFill;
         ByteBuf expectedBuffer;
         int posSub = testState.pos < 0 ? (int) -testState.pos : (int) testState.pos;
         switch (testState.expectedState) {
-            case TOTAL_FILE:
-                expectedBufferSize = destSize;
+            case FILE_TIMES_LENGTH:
                 expectedBufferFill = FILE_BYTE;
+                expectedBufferSize = length;
                 break;
-            case PARTIAL_FILE:
-                expectedBufferSize = Math.min(destSize, FILE_SIZE) - posSub;
-                expectedBufferFill = FILE_BYTE;
-                break;
-            case PARTIAL_READ:
-                expectedBufferSize = Math.min(destSize, FILE_SIZE) - posSub;
+            case READ_TIMES_LENGTH:
                 expectedBufferFill = READ_BYTE;
+                expectedBufferSize = length;
                 break;
-            case TOTAL_WRITE:
-                expectedBufferSize = destSize;
+            case WRITE_TIMES_LENGTH:
                 expectedBufferFill = WRITE_BYTE;
+                expectedBufferSize = length;
                 break;
-            default:
-                expectedBufferSize = -1;
+            case FILE_TIMES_READABLE:
+                expectedBufferFill = FILE_BYTE;
+                expectedBufferSize = readable;
+                break;
+            case EOF:
+            case ILLEGAL_ARG:
                 expectedBufferFill = -1;
+                expectedBufferSize = -1;
+                break;
+            case INFINITE_LOOP:
+                throw new IllegalStateException("INFINITE_LOOP is TODO");
+            default:
+                throw new IllegalStateException("Unexpected value: " + testState.expectedState);
         }
         if (expectedBufferSize != -1) {
             expectedBuffer = Unpooled.buffer(expectedBufferSize);
