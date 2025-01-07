@@ -71,7 +71,7 @@ public class MyBufferedChannelTestConfigurer {
         testState.length = length;
 
         /* Initialize the dest buffer */
-        int destSize;
+        int destSize = 0;
         ByteBuf destBuf;
         switch (testState.destState) {
             case LESS_THAN_LENGTH:
@@ -92,52 +92,60 @@ public class MyBufferedChannelTestConfigurer {
 
         /* Compute the expected buffer */
 
-        int expectedBufferSize;
-        byte expectedBufferFill;
-        ByteBuf expectedBuffer;
-        int posSub = testState.pos < 0 ? (int) -testState.pos : (int) testState.pos;
+        int expectedSize;
+        byte expectedFill;
+        ByteBuf expectedBuffer = null;
         switch (testState.expectedState) {
             case FILE_TIMES_LENGTH:
-                expectedBufferFill = FILE_BYTE;
-                expectedBufferSize = length;
+                expectedFill = FILE_BYTE;
+                expectedSize = length;
+                expectedBuffer = createAndFillBuffer(expectedSize, expectedFill);
                 break;
             case READ_TIMES_LENGTH:
-                expectedBufferFill = READ_BYTE;
-                expectedBufferSize = length;
+                expectedFill = READ_BYTE;
+                expectedSize = length;
+                expectedBuffer = createAndFillBuffer(expectedSize, expectedFill);
                 break;
             case WRITE_TIMES_LENGTH:
-                expectedBufferFill = WRITE_BYTE;
-                expectedBufferSize = length;
+                expectedFill = WRITE_BYTE;
+                expectedSize = length;
+                expectedBuffer = createAndFillBuffer(expectedSize, expectedFill);
                 break;
             case FILE_TIMES_READABLE:
-                expectedBufferFill = FILE_BYTE;
-                expectedBufferSize = readable;
+                expectedFill = FILE_BYTE;
+                expectedSize = readable;
+                expectedBuffer = createAndFillBuffer(expectedSize, expectedFill);
                 break;
             case EMPTY:
-                expectedBufferFill = 0;
-                expectedBufferSize = 0;
+                expectedFill = 0;
+                expectedSize = 0;
+                expectedBuffer = createAndFillBuffer(expectedSize, expectedFill);
                 break;
             case EOF:
             case ILLEGAL_ARGUMENT:
             case NULL_POINTER:
-                expectedBufferFill = -1;
-                expectedBufferSize = -1;
                 break;
             case INFINITE_LOOP:
-                throw new IllegalStateException("INFINITE_LOOP is TODO");
+                expectedFill = FILE_BYTE;
+                expectedSize = length % destSize;
+                expectedBuffer = createAndFillBuffer(destSize, expectedFill);
+                expectedBuffer.resetWriterIndex();
+                for (int i = 0; i < expectedSize; i++) {
+                    expectedBuffer.writeByte(expectedFill);
+                }
+                break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.expectedState);
         }
-        if (expectedBufferSize != -1) {
-            expectedBuffer = Unpooled.buffer(expectedBufferSize);
-            for (int i = 0; i < expectedBufferSize; i++) {
-                expectedBuffer.writeByte(expectedBufferFill);
-            }
-            testState.expectedBuffer = expectedBuffer;
-        } else {
-            testState.expectedBuffer = null;
-        }
+        testState.expectedBuffer = expectedBuffer;
+    }
 
+    private ByteBuf createAndFillBuffer(int size, byte fill) {
+        ByteBuf result = Unpooled.buffer(size);
+        for (int i = 0; i < size; i++) {
+            result.writeByte(fill);
+        }
+        return result;
     }
 
     public void createSUT(MyBufferedChannelTest.TestState testState) throws IOException {

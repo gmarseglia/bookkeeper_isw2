@@ -104,7 +104,14 @@ public class MyBufferedChannelTest {
                 ExpectedState.NULL_POINTER
         );
 
-        
+        /* Read to desc with less capacity than length */
+        TS_11_desc = "#11: Read to smaller dest";
+        TS_11 = new TestState(
+                fromFile,
+                DestState.LESS_THAN_LENGTH, PosState.LESS_EQUAL_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
+                ExpectedState.INFINITE_LOOP
+        );
+
 
         return Stream.of(
                 Arguments.of(TS_01_desc, TS_01),
@@ -116,7 +123,8 @@ public class MyBufferedChannelTest {
                 Arguments.of(TS_07_desc, TS_07),
                 Arguments.of(TS_08_desc, TS_08),
                 Arguments.of(TS_09_desc, TS_09),
-                Arguments.of(TS_10_desc, TS_10)
+                Arguments.of(TS_10_desc, TS_10),
+                Arguments.of(TS_11_desc, TS_11)
         );
     }
 
@@ -158,8 +166,30 @@ public class MyBufferedChannelTest {
                 Assertions.assertThrows(NullPointerException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
                 break;
             case INFINITE_LOOP:
-                Assertions.fail("INFINITE_LOOP is TODO!");
-                break;
+                Runnable runnable = new Runnable() {
+                    private ByteBuf dest;
+
+                    public Runnable init(ByteBuf dest) {
+                        this.dest = dest;
+                        return this;
+                    }
+
+                    @Override
+                    public void run() {
+                        do {
+                            try {
+                                Thread.sleep(1000);
+                                dest.clear();
+                                Thread.sleep(500);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+                        } while (!dest.isWritable());
+
+                    }
+                }.init(testState.dest);
+                Thread thread = new Thread(runnable);
+                thread.start();
             case EMPTY:
             case FILE_TIMES_LENGTH:
             case READ_TIMES_LENGTH:
@@ -172,6 +202,9 @@ public class MyBufferedChannelTest {
                 for (int i = 0; i < expected.capacity(); i++) {
                     Assertions.assertEquals(expected.getByte(i), actual.getByte(i), String.format("Byte: %d", i));
                 }
+                if (testState.expectedState == ExpectedState.INFINITE_LOOP) {
+                    Assertions.assertEquals(expected.writerIndex(), actual.writerIndex());
+                }
                 break;
         }
     }
@@ -181,7 +214,7 @@ public class MyBufferedChannelTest {
     }
 
     public enum DestState {
-        NULL, LESS_THAN_ZERO, LESS_THAN_LENGTH, GREATER_EQUAL_THAN_LENGTH
+        NULL, LESS_THAN_LENGTH, GREATER_EQUAL_THAN_LENGTH
     }
 
     public enum PosState {
