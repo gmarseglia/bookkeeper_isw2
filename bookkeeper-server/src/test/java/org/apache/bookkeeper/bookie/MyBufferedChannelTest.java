@@ -23,8 +23,9 @@ public class MyBufferedChannelTest {
         Configuration fromRead = new Configuration(BufferState.EMPTY, BufferState.NON_EMPTY, BufferState.NON_EMPTY);
         Configuration fromWrite = new Configuration(BufferState.NON_EMPTY, BufferState.EMPTY, BufferState.EMPTY);
 
-        String TS_01_desc, TS_02_desc, TS_03_desc, TS_04_desc, TS_05_desc, TS_06_desc, TS_07_desc, TS_08_desc, TS_09_desc;
-        TestState TS_01, TS_02, TS_03, TS_04, TS_05, TS_06, TS_07, TS_08, TS_09;
+        String TS_01_desc, TS_02_desc, TS_03_desc, TS_04_desc, TS_05_desc,
+                TS_06_desc, TS_07_desc, TS_08_desc, TS_09_desc, TS_10_desc, TS_11_desc;
+        TestState TS_01, TS_02, TS_03, TS_04, TS_05, TS_06, TS_07, TS_08, TS_09, TS_10, TS_11;
 
         /* Read from empty file */
         TS_01_desc = "#1: Read no available";
@@ -60,7 +61,7 @@ public class MyBufferedChannelTest {
         TS_05 = new TestState(
                 fromFile,
                 DestState.GREATER_EQUAL_THAN_LENGTH, PosState.LESS_THAN_ZERO, LengthState.LESS_EQUAL_THAN_READABLE,
-                ExpectedState.ILLEGAL_ARG
+                ExpectedState.ILLEGAL_ARGUMENT
         );
 
         /* Read after end */
@@ -68,7 +69,7 @@ public class MyBufferedChannelTest {
         TS_06 = new TestState(
                 fromFile,
                 DestState.GREATER_EQUAL_THAN_LENGTH, PosState.GREATER_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
-                ExpectedState.ILLEGAL_ARG
+                ExpectedState.ILLEGAL_ARGUMENT
         );
 
         /* Read of negative length */
@@ -95,6 +96,16 @@ public class MyBufferedChannelTest {
                 ExpectedState.EOF
         );
 
+        /* Read to null */
+        TS_10_desc = "#10: Read to null dest";
+        TS_10 = new TestState(
+                fromFile,
+                DestState.NULL, PosState.LESS_EQUAL_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
+                ExpectedState.NULL_POINTER
+        );
+
+        
+
         return Stream.of(
                 Arguments.of(TS_01_desc, TS_01),
                 Arguments.of(TS_02_desc, TS_02),
@@ -104,7 +115,8 @@ public class MyBufferedChannelTest {
                 Arguments.of(TS_06_desc, TS_06),
                 Arguments.of(TS_07_desc, TS_07),
                 Arguments.of(TS_08_desc, TS_08),
-                Arguments.of(TS_09_desc, TS_09)
+                Arguments.of(TS_09_desc, TS_09),
+                Arguments.of(TS_10_desc, TS_10)
         );
     }
 
@@ -118,11 +130,13 @@ public class MyBufferedChannelTest {
 
         String loggerMsg = String.format(
                 "destSize: %d, pos: %d, length: %d, expectedLen: %s, expectedFill: %s",
-                testState.dest.capacity(),
+                testState.dest == null ? -1 : testState.dest.capacity(),
                 testState.pos,
                 testState.length,
                 testState.expectedBuffer == null ? "null" : testState.expectedBuffer.toString(StandardCharsets.UTF_8).length(),
-                testState.expectedBuffer == null ? "null" : testState.expectedBuffer.toString(StandardCharsets.UTF_8).substring(0, 1)
+                testState.expectedBuffer == null ? "null" :
+                        testState.expectedBuffer.capacity() > 0 ?
+                                testState.expectedBuffer.toString(StandardCharsets.UTF_8).substring(0, 1) : ""
         );
         logger.info(loggerMsg);
 
@@ -137,11 +151,16 @@ public class MyBufferedChannelTest {
                 e = Assertions.assertThrows(IOException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
                 Assertions.assertEquals("Read past EOF", e.getMessage());
                 break;
-            case ILLEGAL_ARG:
+            case ILLEGAL_ARGUMENT:
                 Assertions.assertThrows(IllegalArgumentException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
+                break;
+            case NULL_POINTER:
+                Assertions.assertThrows(NullPointerException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
                 break;
             case INFINITE_LOOP:
                 Assertions.fail("INFINITE_LOOP is TODO!");
+                break;
+            case EMPTY:
             case FILE_TIMES_LENGTH:
             case READ_TIMES_LENGTH:
             case WRITE_TIMES_LENGTH:
@@ -153,6 +172,7 @@ public class MyBufferedChannelTest {
                 for (int i = 0; i < expected.capacity(); i++) {
                     Assertions.assertEquals(expected.getByte(i), actual.getByte(i), String.format("Byte: %d", i));
                 }
+                break;
         }
     }
 
@@ -161,7 +181,7 @@ public class MyBufferedChannelTest {
     }
 
     public enum DestState {
-        LESS_THAN_ZERO, LESS_THAN_LENGTH, GREATER_EQUAL_THAN_LENGTH
+        NULL, LESS_THAN_ZERO, LESS_THAN_LENGTH, GREATER_EQUAL_THAN_LENGTH
     }
 
     public enum PosState {
@@ -173,7 +193,8 @@ public class MyBufferedChannelTest {
     }
 
     public enum ExpectedState {
-        EOF, FILE_TIMES_LENGTH, READ_TIMES_LENGTH, WRITE_TIMES_LENGTH, ILLEGAL_ARG, FILE_TIMES_READABLE, EMPTY, INFINITE_LOOP;
+        EMPTY, FILE_TIMES_LENGTH, READ_TIMES_LENGTH, WRITE_TIMES_LENGTH, FILE_TIMES_READABLE,
+        EOF, ILLEGAL_ARGUMENT, NULL_POINTER, INFINITE_LOOP;
     }
 
     public static class Configuration {

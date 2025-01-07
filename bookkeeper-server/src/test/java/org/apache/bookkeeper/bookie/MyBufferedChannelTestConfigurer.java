@@ -72,17 +72,23 @@ public class MyBufferedChannelTestConfigurer {
 
         /* Initialize the dest buffer */
         int destSize;
+        ByteBuf destBuf;
         switch (testState.destState) {
             case LESS_THAN_LENGTH:
                 destSize = Math.max(length - 1, 0);
+                destBuf = ByteBufAllocator.DEFAULT.buffer(destSize);
                 break;
             case GREATER_EQUAL_THAN_LENGTH:
                 destSize = Math.max(length, 0);
+                destBuf = ByteBufAllocator.DEFAULT.buffer(destSize);
+                break;
+            case NULL:
+                destBuf = null;
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.destState);
         }
-        testState.dest = ByteBufAllocator.DEFAULT.buffer(destSize);
+        testState.dest = destBuf;
 
         /* Compute the expected buffer */
 
@@ -110,8 +116,10 @@ public class MyBufferedChannelTestConfigurer {
             case EMPTY:
                 expectedBufferFill = 0;
                 expectedBufferSize = 0;
+                break;
             case EOF:
-            case ILLEGAL_ARG:
+            case ILLEGAL_ARGUMENT:
+            case NULL_POINTER:
                 expectedBufferFill = -1;
                 expectedBufferSize = -1;
                 break;
@@ -221,7 +229,7 @@ public class MyBufferedChannelTestConfigurer {
             assert FILE_SIZE == sut.getNumOfBytesInWriteBuffer();
 
             /* Assert that what has been read is correct */
-            for(int i = 0; i < FILE_SIZE; i++){
+            for (int i = 0; i < FILE_SIZE; i++) {
                 assert sut.writeBuffer.getByte(i) == writeBuffer.getByte(1);
             }
 
