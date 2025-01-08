@@ -392,7 +392,7 @@
                         <configuration>
                             <!-- List of test to run -->
                             <includes>
-                                <include>MyReadCacheTest.java</include>
+                                <include>MyBufferedChannelTest.java</include>
                             </includes>
                         </configuration>
                     </plugin>
@@ -432,7 +432,7 @@
                                 <phase>test</phase>
                                 <configuration>
                                     <includes>
-                                        <include>org/apache/bookkeeper/bookie/storage/ldb/ReadCache.class</include>
+                                        <include>org/apache/bookkeeper/bookie/BufferedChannel.class</include>
                                     </includes>
                                 </configuration>
                                 <goals>
@@ -579,10 +579,10 @@
                             <reportsDirectory>${project.build.directory}/site/pit-reports</reportsDirectory>
                             <threads>4</threads>
                             <targetClasses>
-                                <param>org.apache.bookkeeper.bookie.storage.ldb.ReadCache</param>
+                                <param>org.apache.bookkeeper.bookie.BufferedChannel</param>
                             </targetClasses>
                             <targetTests>
-                                <param>org.apache.bookkeeper.bookie.storage.ldb.MyReadCacheTest</param>
+                                <param>org.apache.bookkeeper.bookie.MyBufferedChannelTest</param>
                             </targetTests>
                             <avoidCallsTo>
                                 <avoidCallsTo>java.util.logging</avoidCallsTo>
@@ -591,11 +591,17 @@
                                 <avoidCallsTo>org.apache.commons.logging</avoidCallsTo>
                             </avoidCallsTo>
                             <excludedMethods>
-                                <excludedMethod>get</excludedMethod>
                                 <excludedMethod>close</excludedMethod>
-                                <excludedMethod>hasEntry</excludedMethod>
-                                <excludedMethod>count</excludedMethod>
-                                <excludedMethod>size</excludedMethod>
+                                <excludedMethod>write</excludedMethod>
+                                <excludedMethod>position</excludedMethod>
+                                <excludedMethod>getFileChannelPosition</excludedMethod>
+                                <excludedMethod>flushAndForceWrite</excludedMethod>
+                                <excludedMethod>flushAndForceWriteIfRegularFlush</excludedMethod>
+                                <excludedMethod>flush</excludedMethod>
+                                <excludedMethod>forceWrite</excludedMethod>
+                                <excludedMethod>clear</excludedMethod>
+                                <excludedMethod>getNumOfBytesInWriteBuffer</excludedMethod>
+                                <excludedMethod>getUnpersistedBytes</excludedMethod>
                             </excludedMethods>
                             <verbose>false</verbose>
                         </configuration>
