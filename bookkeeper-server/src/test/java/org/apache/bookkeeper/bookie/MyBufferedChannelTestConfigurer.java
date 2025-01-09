@@ -124,15 +124,7 @@ public class MyBufferedChannelTestConfigurer {
             case EOF:
             case ILLEGAL_ARGUMENT:
             case NULL_POINTER:
-                break;
-            case INFINITE_LOOP:
-                expectedFill = FILE_BYTE;
-                expectedSize = length % destSize;
-                expectedBuffer = createAndFillBuffer(destSize, expectedFill);
-                expectedBuffer.resetWriterIndex();
-                for (int i = 0; i < expectedSize; i++) {
-                    expectedBuffer.writeByte(expectedFill);
-                }
+            case INDEX_OUT_OF_BOUNDS:
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.expectedState);

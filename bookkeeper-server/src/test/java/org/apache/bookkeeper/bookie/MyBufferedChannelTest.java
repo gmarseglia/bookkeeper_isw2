@@ -2,6 +2,7 @@ package org.apache.bookkeeper.bookie;
 
 import io.netty.buffer.ByteBuf;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 public class MyBufferedChannelTest {
@@ -69,7 +71,7 @@ public class MyBufferedChannelTest {
         TS_06 = new TestState(
                 fromFile,
                 DestState.GREATER_EQUAL_THAN_LENGTH, PosState.GREATER_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
-                ExpectedState.ILLEGAL_ARGUMENT
+                ExpectedState.EOF
         );
 
         /* Read of negative length */
@@ -77,7 +79,7 @@ public class MyBufferedChannelTest {
         TS_07 = new TestState(
                 fromFile,
                 DestState.GREATER_EQUAL_THAN_LENGTH, PosState.LESS_EQUAL_THAN_AVAILABLE, LengthState.LESS_THAN_ZERO,
-                ExpectedState.EMPTY
+                ExpectedState.ILLEGAL_ARGUMENT
         );
 
         /* Read of 0 length */
@@ -109,7 +111,7 @@ public class MyBufferedChannelTest {
         TS_11 = new TestState(
                 fromFile,
                 DestState.LESS_THAN_LENGTH, PosState.LESS_EQUAL_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
-                ExpectedState.INFINITE_LOOP
+                ExpectedState.INDEX_OUT_OF_BOUNDS
         );
 
 
@@ -130,6 +132,7 @@ public class MyBufferedChannelTest {
 
     @ParameterizedTest
     @MethodSource("readTestArguments")
+    @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
     void readTest(String description, TestState testState) throws IOException {
         logger.info(description);
 
@@ -165,31 +168,9 @@ public class MyBufferedChannelTest {
             case NULL_POINTER:
                 Assertions.assertThrows(NullPointerException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
                 break;
-            case INFINITE_LOOP:
-                Runnable runnable = new Runnable() {
-                    private ByteBuf dest;
-
-                    public Runnable init(ByteBuf dest) {
-                        this.dest = dest;
-                        return this;
-                    }
-
-                    @Override
-                    public void run() {
-                        do {
-                            try {
-                                Thread.sleep(1000);
-                                dest.clear();
-                                Thread.sleep(500);
-                            } catch (InterruptedException e) {
-                                throw new RuntimeException(e);
-                            }
-                        } while (!dest.isWritable());
-
-                    }
-                }.init(testState.dest);
-                Thread thread = new Thread(runnable);
-                thread.start();
+            case INDEX_OUT_OF_BOUNDS:
+                Assertions.assertThrows(IndexOutOfBoundsException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
+                break;
             case EMPTY:
             case FILE_TIMES_LENGTH:
             case READ_TIMES_LENGTH:
@@ -201,9 +182,6 @@ public class MyBufferedChannelTest {
                 Assertions.assertEquals(expected.capacity(), actual.capacity());
                 for (int i = 0; i < expected.capacity(); i++) {
                     Assertions.assertEquals(expected.getByte(i), actual.getByte(i), String.format("Byte: %d", i));
-                }
-                if (testState.expectedState == ExpectedState.INFINITE_LOOP) {
-                    Assertions.assertEquals(expected.writerIndex(), actual.writerIndex());
                 }
                 break;
         }
@@ -227,7 +205,7 @@ public class MyBufferedChannelTest {
 
     public enum ExpectedState {
         EMPTY, FILE_TIMES_LENGTH, READ_TIMES_LENGTH, WRITE_TIMES_LENGTH, FILE_TIMES_READABLE,
-        EOF, ILLEGAL_ARGUMENT, NULL_POINTER, INFINITE_LOOP;
+        EOF, ILLEGAL_ARGUMENT, NULL_POINTER, INDEX_OUT_OF_BOUNDS;
     }
 
     public static class Configuration {
