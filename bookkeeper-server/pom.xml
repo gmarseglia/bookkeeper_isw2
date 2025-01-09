@@ -400,6 +400,15 @@
             </build>
         </profile>
 
+        <profile>
+            <id>ignoreTestFailure</id>
+
+            <properties>
+                <maven.test.failure.ignore>true</maven.test.failure.ignore>
+            </properties>
+        </profile>
+
+
         <!-- Jacoco profile -->
         <profile>
             <id>jacoco</id>

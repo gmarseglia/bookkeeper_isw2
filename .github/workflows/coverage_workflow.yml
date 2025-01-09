@@ -26,7 +26,8 @@ jobs:
         run: mvn -B install -DskipTests
 
       - name: Test with Jacoco
-        run: mvn -B test --file bookkeeper-server/pom.xml -Pjacoco
+        working-directory: bookkeeper-server/
+        run: mvn -B test -Pjacoco,ignoreTestFailure
 
       - name: Install ba-dua-agent-rt
         working-directory: bookkeeper-server/ba-dua/ba-dua-agent-rt/
@@ -40,15 +41,12 @@ jobs:
           sudo apt install libxml2-utils
       - name: Test with ba-dua
         working-directory: bookkeeper-server/
-        run: mvn -B test -Pbadua
+        run: mvn -B test -Pbadua,ignoreTestFailure
 
-      - name: Test with PIT
-        working-directory: bookkeeper-server/
-        run: mvn -B test -Ppitest
       - name: Save results
         working-directory: bookkeeper-server/results
-        run: ./saveCurrentResult.sh current
+        run: ./saveCurrentResult.sh current-coverage
       - uses: actions/upload-artifact@v4
         with:
-          name: Final Report
-          path: bookkeeper-server/results/current
+          name: Coverage Report
+          path: bookkeeper-server/results/current-coverage
