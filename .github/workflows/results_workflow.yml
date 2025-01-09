@@ -6,7 +6,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Mutation test of bookkeeper-server
+name: Test results of bookkeeper-server
 
 on: [ push, pull_request ]
 
@@ -25,14 +25,6 @@ jobs:
       - name: Install with Maven
         run: mvn -B install -DskipTests
 
-      - name: Test with PIT
+      - name: Test with Junit
         working-directory: bookkeeper-server/
-        run: mvn -B test -Ppitest,customTest
-
-      - name: Save results
-        working-directory: bookkeeper-server/results
-        run: ./saveCurrentResult.sh current-mutation
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Mutation Report
-          path: bookkeeper-server/results/current-mutation
+        run: mvn -B test -PcustomTest

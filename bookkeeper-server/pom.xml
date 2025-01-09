@@ -377,11 +377,6 @@
         <!-- Custom test definition profile -->
         <profile>
             <id>customTest</id>
-            <activation>
-                <property>
-                    <name>!useDefaultTest</name> <!-- Run only indicated tests by default -->
-                </property>
-            </activation>
 
             <build>
                 <plugins>
