@@ -246,13 +246,15 @@ public class BufferedChannel extends BufferedReadChannel implements Closeable {
     @Override
     public synchronized int read(ByteBuf dest, long pos, int length) throws IOException {
         long prevPos = pos;
+        if (length < 0)
+            throw new IllegalArgumentException(String.format("length: %d (expected >= 0)", length));
         while (length > 0) {
             // check if it is in the write buffer
             if (writeBuffer != null && writeBufferStartPosition.get() <= pos) {
                 int positionInBuffer = (int) (pos - writeBufferStartPosition.get());
                 int bytesToCopy = Math.min(writeBuffer.writerIndex() - positionInBuffer, dest.writableBytes());
 
-                if (bytesToCopy == 0) {
+                if (bytesToCopy <= 0) {
                     throw new IOException("Read past EOF");
                 }
 
@@ -261,11 +263,16 @@ public class BufferedChannel extends BufferedReadChannel implements Closeable {
                 length -= bytesToCopy;
             } else if (writeBuffer == null && writeBufferStartPosition.get() <= pos) {
                 // here we reach the end
-                break;
+                throw new IOException("Read past EOF");
                 // first check if there is anything we can grab from the readBuffer
             } else if (readBufferStartPosition <= pos && pos < readBufferStartPosition + readBuffer.writerIndex()) {
                 int positionInBuffer = (int) (pos - readBufferStartPosition);
                 int bytesToCopy = Math.min(readBuffer.writerIndex() - positionInBuffer, dest.writableBytes());
+
+                if (dest.writableBytes() <= 0) {
+                    throw new IndexOutOfBoundsException("dest capacity exceed");
+                }
+
                 dest.writeBytes(readBuffer, positionInBuffer, bytesToCopy);
                 pos += bytesToCopy;
                 length -= bytesToCopy;
