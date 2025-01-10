@@ -202,13 +202,15 @@ public class MyBufferedChannelTest {
             case READ_TIMES_LENGTH:
             case WRITE_TIMES_LENGTH:
             case FILE_TIMES_READABLE:
-                SUT.read(testState.dest, testState.pos, testState.length);
+                int actualBytesRead;
+                actualBytesRead = SUT.read(testState.dest, testState.pos, testState.length);
                 expected = testState.expectedBuffer;
                 actual = testState.dest;
                 Assertions.assertEquals(expected.capacity(), actual.capacity());
                 for (int i = 0; i < expected.capacity(); i++) {
                     Assertions.assertEquals(expected.getByte(i), actual.getByte(i), String.format("Byte: %d", i));
                 }
+                Assertions.assertEquals(testState.length, actualBytesRead);
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.expectedState);
