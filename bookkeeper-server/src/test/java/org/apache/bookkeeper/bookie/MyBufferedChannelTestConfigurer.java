@@ -130,6 +130,7 @@ public class MyBufferedChannelTestConfigurer {
             case ILLEGAL_ARGUMENT:
             case NULL_POINTER:
             case INDEX_OUT_OF_BOUNDS:
+            case IO_EXCEPTION:
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.expectedState);
@@ -195,23 +196,34 @@ public class MyBufferedChannelTestConfigurer {
             actual.release();
         }
 
+        int byteToWrite = -1;
         switch (testState.configuration.fileChannelState) {
             case EMPTY:
                 // Empty the file
                 fileChannel.truncate(0);
                 break;
             case NON_EMPTY:
-                /* Write into fileChannel */
-                ByteBuffer expected = testState.fileBundle.fillFileChannel(FILE_BYTE, FILE_SIZE, true);
-                expected.flip();
-
-                /* Read from file channel */
-                ByteBuffer actual = ByteBuffer.allocate(FILE_SIZE);
-                readFromFileChannel(fileChannel, actual);
-
-                /* Assert that what was read was what was read */
-                assertEqualsByteBuffer(expected, actual);
+                byteToWrite = FILE_SIZE;
                 break;
+            case TRUNCATED:
+                // Empty the file
+                fileChannel.truncate(0);
+                byteToWrite = FILE_SIZE / 2;
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + testState.configuration.fileChannelState);
+        }
+        if (byteToWrite >= 0){
+            /* Write into fileChannel */
+            ByteBuffer expected = testState.fileBundle.fillFileChannel(FILE_BYTE, byteToWrite, true);
+            expected.flip();
+
+            /* Read from file channel */
+            ByteBuffer actual = ByteBuffer.allocate(byteToWrite);
+            readFromFileChannel(fileChannel, actual);
+
+            /* Assert that what was read was what was read */
+            assertEqualsByteBuffer(expected, actual);
         }
 
         /* Set up the SUT write buffer */

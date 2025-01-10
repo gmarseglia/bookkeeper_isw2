@@ -24,6 +24,7 @@ public class MyBufferedChannelTest {
         Configuration fromRead = new Configuration(BufferState.EMPTY, BufferState.NON_EMPTY, BufferState.NON_EMPTY);
         Configuration fromWrite = new Configuration(BufferState.NON_EMPTY, BufferState.EMPTY, BufferState.EMPTY);
         Configuration nullWrite = new Configuration(BufferState.NULL, BufferState.EMPTY, BufferState.EMPTY);
+        Configuration truncatedFile = new Configuration(BufferState.EMPTY, BufferState.EMPTY, BufferState.TRUNCATED);
 
         /* Read from empty file */
         TestState TS_01 = new TestState(
@@ -117,6 +118,12 @@ public class MyBufferedChannelTest {
                 ExpectedState.EOF
         );
 
+        TestState TS_13 = new TestState(
+                "13: read on file truncated after SUT creation",
+                truncatedFile,
+                DestState.GREATER_EQUAL_THAN_LENGTH, PosState.LESS_EQUAL_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
+                ExpectedState.IO_EXCEPTION
+        );
 
         return Stream.of(
                 Arguments.of(TS_01),
@@ -130,13 +137,14 @@ public class MyBufferedChannelTest {
                 Arguments.of(TS_09),
                 Arguments.of(TS_10),
                 Arguments.of(TS_11),
-                Arguments.of(TS_12)
+                Arguments.of(TS_12),
+                Arguments.of(TS_13)
         );
     }
 
     @ParameterizedTest
     @MethodSource("readTestArguments")
-    // @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
     void readTest(TestState testState) throws IOException {
         String description = testState.description;
         logger.info(description);
@@ -161,11 +169,15 @@ public class MyBufferedChannelTest {
         ByteBuf actual;
 
         /* Compare the result */
+        IOException e;
         switch (testState.expectedState) {
             case EOF:
-                IOException e;
                 e = Assertions.assertThrows(IOException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
                 Assertions.assertEquals("Read past EOF", e.getMessage());
+                break;
+            case IO_EXCEPTION:
+                e = Assertions.assertThrows(IOException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
+                Assertions.assertNotEquals("Read past EOF", e.getMessage());
                 break;
             case ILLEGAL_ARGUMENT:
                 Assertions.assertThrows(IllegalArgumentException.class, () -> SUT.read(testState.dest, testState.pos, testState.length));
@@ -189,11 +201,13 @@ public class MyBufferedChannelTest {
                     Assertions.assertEquals(expected.getByte(i), actual.getByte(i), String.format("Byte: %d", i));
                 }
                 break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + testState.expectedState);
         }
     }
 
     public enum BufferState {
-        EMPTY, NON_EMPTY, NULL
+        EMPTY, NON_EMPTY, NULL, TRUNCATED
     }
 
     public enum DestState {
@@ -210,7 +224,7 @@ public class MyBufferedChannelTest {
 
     public enum ExpectedState {
         EMPTY, FILE_TIMES_LENGTH, READ_TIMES_LENGTH, WRITE_TIMES_LENGTH, FILE_TIMES_READABLE,
-        EOF, ILLEGAL_ARGUMENT, NULL_POINTER, INDEX_OUT_OF_BOUNDS;
+        EOF, ILLEGAL_ARGUMENT, NULL_POINTER, INDEX_OUT_OF_BOUNDS, IO_EXCEPTION;
     }
 
     public static class Configuration {
