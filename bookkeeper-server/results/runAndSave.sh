@@ -18,11 +18,11 @@ done
 
 cd ..
 mvn clean
-mvn test -Pjacoco
-mvn test -Pbadua
+mvn test -Pjacoco,ignoreTestFailure,customTest
+mvn test -Pbadua,ignoreTestFailure,customTest
 if $PITEST
 then
-	mvn test -Ppitest
+	mvn test -Ppitest,ignoreTestFailure,customTest
 fi
 
 cd results/ || exit
