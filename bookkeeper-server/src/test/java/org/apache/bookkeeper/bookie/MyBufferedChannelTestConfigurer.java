@@ -44,6 +44,9 @@ public class MyBufferedChannelTestConfigurer {
             case LESS_EQUAL_THAN_AVAILABLE:
                 pos = 0;
                 break;
+            case LESS_EQUAL_THAN_FIRST_HALF:
+                pos = available / 4;
+                break;
             case GREATER_THAN_AVAILABLE:
                 pos = available + 1;
                 break;
@@ -156,8 +159,20 @@ public class MyBufferedChannelTestConfigurer {
             allocator = ByteBufAllocator.DEFAULT;
         }
 
+        int writeCapacity, readCapacity;
+        writeCapacity = FILE_SIZE + 1;
+
+        if (testState.configuration.readBufferState == MyBufferedChannelTest.BufferState.SECOND_HALF) {
+            readCapacity = FILE_SIZE / 2 + 1;
+        } else {
+            readCapacity = FILE_SIZE + 1;
+        }
+
         /* Create the BufferedChannel class */
-        testState.sut = new BufferedChannel(allocator, testState.fileBundle.fileChannel, FILE_SIZE + 1, FILE_SIZE + 1);
+        testState.sut = new BufferedChannel(
+                allocator, testState.fileBundle.fileChannel,
+                writeCapacity, readCapacity,
+                FILE_SIZE + 1);
     }
 
     public void configure(MyBufferedChannelTest.TestState testState) throws IOException {
@@ -165,7 +180,8 @@ public class MyBufferedChannelTestConfigurer {
         ByteBuffer readFileBuffer = null;
 
         /* Set up the file for read buffer */
-        boolean readBufferPresent = (testState.configuration.readBufferState == MyBufferedChannelTest.BufferState.NON_EMPTY);
+        boolean readBufferPresent = (testState.configuration.readBufferState == MyBufferedChannelTest.BufferState.NON_EMPTY ||
+                testState.configuration.readBufferState == MyBufferedChannelTest.BufferState.SECOND_HALF);
         boolean filePresent = (testState.configuration.fileChannelState == MyBufferedChannelTest.BufferState.NON_EMPTY
                 || testState.configuration.fileChannelState == MyBufferedChannelTest.BufferState.TRUNCATED);
 
@@ -186,13 +202,26 @@ public class MyBufferedChannelTestConfigurer {
         BufferedChannel sut = testState.sut;
 
         /* Set up the SUT read buffer */
-        if (testState.configuration.readBufferState == MyBufferedChannelTest.BufferState.NON_EMPTY) {
-            ByteBuf actual = Unpooled.buffer(FILE_SIZE);
-            sut.read(actual, 0, FILE_SIZE);
+        if (readBufferPresent) {
+            int fileSize;
+            int filePos;
+            switch (testState.configuration.readBufferState) {
+                case NON_EMPTY:
+                    filePos = 0;
+                    fileSize = FILE_SIZE;
+                    break;
+                case SECOND_HALF:
+                    filePos = FILE_SIZE / 2;
+                    fileSize = FILE_SIZE / 2;
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + testState.configuration.readBufferState);
+            }
+            ByteBuf actual = Unpooled.buffer(fileSize);
+            sut.read(actual, filePos, fileSize);
 
             // Assert that SUT has read what has been written to file
-            assert readFileBuffer != null;
-            assertEqualsByteBuffer(readFileBuffer, actual.nioBuffer());
+            assertEqualsByteBuffer(readFileBuffer, actual.nioBuffer(), fileSize);
             actual.release();
         }
 
@@ -213,7 +242,7 @@ public class MyBufferedChannelTestConfigurer {
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.configuration.fileChannelState);
         }
-        if (byteToWrite >= 0){
+        if (byteToWrite >= 0) {
             /* Write into fileChannel */
             ByteBuffer expected = testState.fileBundle.fillFileChannel(FILE_BYTE, byteToWrite, true);
             expected.flip();

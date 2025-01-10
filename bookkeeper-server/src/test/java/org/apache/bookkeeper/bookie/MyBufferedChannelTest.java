@@ -21,10 +21,11 @@ public class MyBufferedChannelTest {
     private static Stream<Arguments> readTestArguments() {
         Configuration allEmpty = new Configuration(BufferState.EMPTY, BufferState.EMPTY, BufferState.EMPTY);
         Configuration fromFile = new Configuration(BufferState.EMPTY, BufferState.EMPTY, BufferState.NON_EMPTY);
-        Configuration fromRead = new Configuration(BufferState.EMPTY, BufferState.NON_EMPTY, BufferState.NON_EMPTY);
+        Configuration fromRead = new Configuration(BufferState.NULL, BufferState.NON_EMPTY, BufferState.NON_EMPTY);
         Configuration fromWrite = new Configuration(BufferState.NON_EMPTY, BufferState.EMPTY, BufferState.EMPTY);
         Configuration nullWrite = new Configuration(BufferState.NULL, BufferState.EMPTY, BufferState.EMPTY);
         Configuration truncatedFile = new Configuration(BufferState.EMPTY, BufferState.EMPTY, BufferState.TRUNCATED);
+        Configuration smallRead = new Configuration(BufferState.EMPTY, BufferState.SECOND_HALF, BufferState.NON_EMPTY);
 
         /* Read from empty file */
         TestState TS_01 = new TestState(
@@ -125,6 +126,13 @@ public class MyBufferedChannelTest {
                 ExpectedState.IO_EXCEPTION
         );
 
+        TestState TS_14 = new TestState(
+                "#14: read on smaller read buffer",
+                smallRead,
+                DestState.GREATER_EQUAL_THAN_LENGTH, PosState.LESS_EQUAL_THAN_FIRST_HALF, LengthState.LESS_EQUAL_THAN_READABLE,
+                ExpectedState.FILE_TIMES_LENGTH
+        );
+
         return Stream.of(
                 Arguments.of(TS_01),
                 Arguments.of(TS_02),
@@ -138,7 +146,8 @@ public class MyBufferedChannelTest {
                 Arguments.of(TS_10),
                 Arguments.of(TS_11),
                 Arguments.of(TS_12),
-                Arguments.of(TS_13)
+                Arguments.of(TS_13),
+                Arguments.of(TS_14)
         );
     }
 
@@ -207,7 +216,7 @@ public class MyBufferedChannelTest {
     }
 
     public enum BufferState {
-        EMPTY, NON_EMPTY, NULL, TRUNCATED
+        EMPTY, NON_EMPTY, NULL, TRUNCATED, SECOND_HALF
     }
 
     public enum DestState {
@@ -215,7 +224,7 @@ public class MyBufferedChannelTest {
     }
 
     public enum PosState {
-        LESS_THAN_ZERO, LESS_EQUAL_THAN_AVAILABLE, GREATER_THAN_AVAILABLE
+        LESS_THAN_ZERO, LESS_EQUAL_THAN_AVAILABLE, GREATER_THAN_AVAILABLE, LESS_EQUAL_THAN_FIRST_HALF
     }
 
     public enum LengthState {
