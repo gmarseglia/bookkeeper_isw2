@@ -10,6 +10,10 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 public class MyBufferedChannelTestConfigurer {
 
     private static final byte FILE_BYTE = (byte) 'F';
@@ -141,8 +145,17 @@ public class MyBufferedChannelTestConfigurer {
     }
 
     public void createSUT(MyBufferedChannelTest.TestState testState) throws IOException {
+        ByteBufAllocator allocator;
+
+        if (testState.configuration.writeBufferState == MyBufferedChannelTest.BufferState.NULL) {
+            allocator = mock(ByteBufAllocator.class);
+            when(allocator.directBuffer(anyInt())).thenReturn(null);
+        } else {
+            allocator = ByteBufAllocator.DEFAULT;
+        }
+
         /* Create the BufferedChannel class */
-        testState.sut = new BufferedChannel(ByteBufAllocator.DEFAULT, testState.fileBundle.fileChannel, FILE_SIZE + 1, FILE_SIZE + 1);
+        testState.sut = new BufferedChannel(allocator, testState.fileBundle.fileChannel, FILE_SIZE + 1, FILE_SIZE + 1);
     }
 
     public void configure(MyBufferedChannelTest.TestState testState) throws IOException {

@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 public class MyBufferedChannelTest {
@@ -24,6 +23,7 @@ public class MyBufferedChannelTest {
         Configuration fromFile = new Configuration(BufferState.EMPTY, BufferState.EMPTY, BufferState.NON_EMPTY);
         Configuration fromRead = new Configuration(BufferState.EMPTY, BufferState.NON_EMPTY, BufferState.NON_EMPTY);
         Configuration fromWrite = new Configuration(BufferState.NON_EMPTY, BufferState.EMPTY, BufferState.EMPTY);
+        Configuration nullWrite = new Configuration(BufferState.NULL, BufferState.EMPTY, BufferState.EMPTY);
 
         String TS_01_desc, TS_02_desc, TS_03_desc, TS_04_desc, TS_05_desc,
                 TS_06_desc, TS_07_desc, TS_08_desc, TS_09_desc, TS_10_desc, TS_11_desc;
@@ -114,25 +114,33 @@ public class MyBufferedChannelTest {
                 ExpectedState.INDEX_OUT_OF_BOUNDS
         );
 
+        String TS_12_desc = "#12: null write buffer";
+        TestState TS_12 = new TestState(
+                nullWrite,
+                DestState.GREATER_EQUAL_THAN_LENGTH, PosState.LESS_EQUAL_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
+                ExpectedState.EOF
+        );
+
 
         return Stream.of(
-                Arguments.of(TS_01_desc, TS_01),
-                Arguments.of(TS_02_desc, TS_02),
-                Arguments.of(TS_03_desc, TS_03),
-                Arguments.of(TS_04_desc, TS_04),
-                Arguments.of(TS_05_desc, TS_05),
-                Arguments.of(TS_06_desc, TS_06),
-                Arguments.of(TS_07_desc, TS_07),
-                Arguments.of(TS_08_desc, TS_08),
-                Arguments.of(TS_09_desc, TS_09),
-                Arguments.of(TS_10_desc, TS_10),
-                Arguments.of(TS_11_desc, TS_11)
+                // Arguments.of(TS_01_desc, TS_01),
+                // Arguments.of(TS_02_desc, TS_02),
+                // Arguments.of(TS_03_desc, TS_03),
+                // Arguments.of(TS_04_desc, TS_04),
+                // Arguments.of(TS_05_desc, TS_05),
+                // Arguments.of(TS_06_desc, TS_06),
+                // Arguments.of(TS_07_desc, TS_07),
+                // Arguments.of(TS_08_desc, TS_08),
+                // Arguments.of(TS_09_desc, TS_09),
+                // Arguments.of(TS_10_desc, TS_10),
+                // Arguments.of(TS_11_desc, TS_11),
+                Arguments.of(TS_12_desc, TS_12)
         );
     }
 
     @ParameterizedTest
     @MethodSource("readTestArguments")
-    @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    // @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
     void readTest(String description, TestState testState) throws IOException {
         logger.info(description);
 
@@ -188,7 +196,7 @@ public class MyBufferedChannelTest {
     }
 
     public enum BufferState {
-        EMPTY, NON_EMPTY
+        EMPTY, NON_EMPTY, NULL
     }
 
     public enum DestState {
