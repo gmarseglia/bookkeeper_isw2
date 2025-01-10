@@ -3,12 +3,12 @@ package org.apache.bookkeeper.bookie;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -20,6 +20,7 @@ public class MyBufferedChannelTestConfigurer {
     private static final int FILE_SIZE = 1024;
     private static final byte READ_BYTE = (byte) 'R';
     private static final byte WRITE_BYTE = (byte) 'W';
+    private static final Logger log = LoggerFactory.getLogger(MyBufferedChannelTestConfigurer.class);
 
     public MyBufferedChannelTestConfigurer() {
     }
@@ -163,22 +164,20 @@ public class MyBufferedChannelTestConfigurer {
         ByteBuffer readFileBuffer = null;
 
         /* Set up the file for read buffer */
-        if (testState.configuration.readBufferState == MyBufferedChannelTest.BufferState.NON_EMPTY ||
-                testState.configuration.fileChannelState == MyBufferedChannelTest.BufferState.NON_EMPTY) {
+        boolean readBufferPresent = (testState.configuration.readBufferState == MyBufferedChannelTest.BufferState.NON_EMPTY);
+        boolean filePresent = (testState.configuration.fileChannelState == MyBufferedChannelTest.BufferState.NON_EMPTY
+                || testState.configuration.fileChannelState == MyBufferedChannelTest.BufferState.TRUNCATED);
+
+        if (readBufferPresent || filePresent) {
+            /* Write into fileChannel */
             readFileBuffer = testState.fileBundle.fillFileChannel(READ_BYTE, FILE_SIZE, false);
 
-            /* Assert that the file has been written correctly */
-            ByteBuffer tempReadBuffer = ByteBuffer.allocate(FILE_SIZE);
-            long prevPos = fileChannel.position();
-            fileChannel.position(0);
-            fileChannel.read(tempReadBuffer);
-            fileChannel.position(prevPos);
-            tempReadBuffer.flip();
+            /* Read from fileChannel */
+            ByteBuffer actual = ByteBuffer.allocate(FILE_SIZE);
+            readFromFileChannel(fileChannel, actual);
 
-            assert readFileBuffer.capacity() == tempReadBuffer.capacity();
-            for (int i = 0; i < readFileBuffer.capacity(); i++) {
-                assert readFileBuffer.get(i) == tempReadBuffer.get(i);
-            }
+            /* Assert that the file has been written correctly */
+            assertEqualsByteBuffer(readFileBuffer, actual);
         }
 
         /* Create the SUT */
@@ -187,66 +186,69 @@ public class MyBufferedChannelTestConfigurer {
 
         /* Set up the SUT read buffer */
         if (testState.configuration.readBufferState == MyBufferedChannelTest.BufferState.NON_EMPTY) {
-            ByteBuf tempReadBuffer = Unpooled.buffer(FILE_SIZE);
-            sut.read(tempReadBuffer, 0, FILE_SIZE);
+            ByteBuf actual = Unpooled.buffer(FILE_SIZE);
+            sut.read(actual, 0, FILE_SIZE);
 
             // Assert that SUT has read what has been written to file
             assert readFileBuffer != null;
-            readFileBuffer.position(0);
-            assert readFileBuffer.compareTo(tempReadBuffer.nioBuffer()) == 0;
-            tempReadBuffer.release();
+            assertEqualsByteBuffer(readFileBuffer, actual.nioBuffer());
+            actual.release();
         }
 
-        if (testState.configuration.fileChannelState == MyBufferedChannelTest.BufferState.EMPTY) {
-            // Empty the file
-            Path filePath = testState.fileBundle.file.toPath();
-            Files.newBufferedWriter(filePath).close();
-        } else {
-            ByteBuffer tempFileBuffer = testState.fileBundle.fillFileChannel(FILE_BYTE, FILE_SIZE, true);
+        switch (testState.configuration.fileChannelState) {
+            case EMPTY:
+                // Empty the file
+                fileChannel.truncate(0);
+                break;
+            case NON_EMPTY:
+                /* Write into fileChannel */
+                ByteBuffer expected = testState.fileBundle.fillFileChannel(FILE_BYTE, FILE_SIZE, true);
+                expected.flip();
 
-            /* Assert that the file has been written correctly */
-            ByteBuffer tempReadBuffer = ByteBuffer.allocate(FILE_SIZE);
-            long prevPos = fileChannel.position();
-            fileChannel.position(0);
-            fileChannel.read(tempReadBuffer);
-            fileChannel.position(prevPos);
-            tempReadBuffer.position(0);
-            tempFileBuffer.flip();
-            tempFileBuffer.position(0);
-            assert tempFileBuffer.compareTo(tempReadBuffer) == 0;
+                /* Read from file channel */
+                ByteBuffer actual = ByteBuffer.allocate(FILE_SIZE);
+                readFromFileChannel(fileChannel, actual);
+
+                /* Assert that what was read was what was read */
+                assertEqualsByteBuffer(expected, actual);
+                break;
         }
 
         /* Set up the SUT write buffer */
         if (testState.configuration.writeBufferState == MyBufferedChannelTest.BufferState.NON_EMPTY) {
             /* Read from fileChannel before and after to ensure that the file has not been changed */
-            ByteBuffer fileBeforeBuffer, fileAfterBuffer;
-            fileBeforeBuffer = ByteBuffer.allocate(FILE_SIZE);
-            fileAfterBuffer = ByteBuffer.allocate(FILE_SIZE);
+            ByteBuffer expectedFile, actualFile;
+            ByteBuf expectedWrite;
+            expectedFile = ByteBuffer.allocate(FILE_SIZE);
+            actualFile = ByteBuffer.allocate(FILE_SIZE);
 
-            int byteRead = readFromFileChannel(fileChannel, fileBeforeBuffer);
+            /* Read from fileChannel */
+            int byteRead = readFromFileChannel(fileChannel, expectedFile);
 
-            assert sut.position() == 0;
-            ByteBuf writeBuffer = Unpooled.buffer(FILE_SIZE);
+            /* Fill the expectedWrite buffer */
+            expectedWrite = Unpooled.buffer(FILE_SIZE);
             for (int i = 0; i < FILE_SIZE; i++) {
-                writeBuffer.writeByte(WRITE_BYTE);
+                expectedWrite.writeByte(WRITE_BYTE);
             }
-            sut.write(writeBuffer);
 
-            readFromFileChannel(fileChannel, fileAfterBuffer);
+            /* Write into SUT */
+            assert sut.position() == 0;
+            sut.write(expectedWrite);
+
+            /* Read from file channel */
+            readFromFileChannel(fileChannel, actualFile);
 
             /* Assert file has not changes */
-            for (int i = 0; i < byteRead; i++) {
-                assert fileBeforeBuffer.get(i) == fileAfterBuffer.get(i);
-            }
+            assertEqualsByteBuffer(expectedFile, actualFile, byteRead);
+
             /* Assert something has been read */
             assert FILE_SIZE == sut.getNumOfBytesInWriteBuffer();
 
-            /* Assert that what has been read is correct */
+            /* Assert that what the content of sut.writeBuffer is correct */
             for (int i = 0; i < FILE_SIZE; i++) {
-                assert sut.writeBuffer.getByte(i) == writeBuffer.getByte(1);
+                assert expectedWrite.getByte(1) == sut.writeBuffer.getByte(i);
             }
-
-            writeBuffer.release();
+            expectedWrite.release();
         }
 
     }
@@ -258,6 +260,19 @@ public class MyBufferedChannelTestConfigurer {
         fileChannel.position(prevPos);
         buffer.flip();
         return read;
+    }
+
+    private void assertEqualsByteBuffer(ByteBuffer expected, ByteBuffer actual) {
+        assert expected.capacity() == actual.capacity();
+        for (int i = 0; i < expected.capacity(); i++) {
+            assert expected.get(i) == actual.get(i);
+        }
+    }
+
+    private void assertEqualsByteBuffer(ByteBuffer expected, ByteBuffer actual, int byteRead) {
+        for (int i = 0; i < byteRead; i++) {
+            assert expected.get(i) == actual.get(i);
+        }
     }
 
 }
