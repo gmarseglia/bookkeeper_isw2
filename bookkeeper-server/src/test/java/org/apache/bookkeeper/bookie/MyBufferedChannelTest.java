@@ -22,7 +22,7 @@ public class MyBufferedChannelTest {
         Configuration allEmpty = new Configuration(BufferState.EMPTY, BufferState.EMPTY, BufferState.EMPTY);
         Configuration fromFile = new Configuration(BufferState.EMPTY, BufferState.EMPTY, BufferState.NON_EMPTY);
         Configuration fromRead = new Configuration(BufferState.NULL, BufferState.NON_EMPTY, BufferState.NON_EMPTY);
-        Configuration fromWrite = new Configuration(BufferState.NON_EMPTY, BufferState.EMPTY, BufferState.EMPTY);
+        Configuration fromWrite = new Configuration(BufferState.NON_EMPTY, BufferState.EMPTY, BufferState.NON_EMPTY);
         Configuration nullWrite = new Configuration(BufferState.NULL, BufferState.EMPTY, BufferState.EMPTY);
         Configuration truncatedFile = new Configuration(BufferState.EMPTY, BufferState.EMPTY, BufferState.TRUNCATED);
         Configuration smallRead = new Configuration(BufferState.EMPTY, BufferState.SECOND_HALF, BufferState.NON_EMPTY);
@@ -52,7 +52,7 @@ public class MyBufferedChannelTest {
         TestState TS_04 = new TestState(
                 "#4: Read from write buffer",
                 fromWrite,
-                DestState.GREATER_EQUAL_THAN_LENGTH, PosState.LESS_EQUAL_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
+                DestState.GREATER_EQUAL_THAN_LENGTH, PosState.GREATER_EQUAL_THAN_WRITE_BUFFER, LengthState.LESS_EQUAL_THAN_READABLE,
                 ExpectedState.WRITE_TIMES_LENGTH
         );
 
@@ -206,7 +206,7 @@ public class MyBufferedChannelTest {
                 actualBytesRead = SUT.read(testState.dest, testState.pos, testState.length);
                 expected = testState.expectedBuffer;
                 actual = testState.dest;
-                Assertions.assertEquals(expected.capacity(), actual.capacity());
+                Assertions.assertEquals(expected.writerIndex(), actual.writerIndex());
                 for (int i = 0; i < expected.capacity(); i++) {
                     Assertions.assertEquals(expected.getByte(i), actual.getByte(i), String.format("Byte: %d", i));
                 }
@@ -226,7 +226,7 @@ public class MyBufferedChannelTest {
     }
 
     public enum PosState {
-        LESS_THAN_ZERO, LESS_EQUAL_THAN_AVAILABLE, GREATER_THAN_AVAILABLE, LESS_EQUAL_THAN_FIRST_HALF
+        LESS_THAN_ZERO, LESS_EQUAL_THAN_AVAILABLE, GREATER_THAN_AVAILABLE, LESS_EQUAL_THAN_FIRST_HALF, GREATER_EQUAL_THAN_WRITE_BUFFER
     }
 
     public enum LengthState {

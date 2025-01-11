@@ -44,6 +44,9 @@ public class MyBufferedChannelTestConfigurer {
             case LESS_EQUAL_THAN_AVAILABLE:
                 pos = 0;
                 break;
+            case GREATER_EQUAL_THAN_WRITE_BUFFER:
+                pos = testState.sut.writeBufferStartPosition.intValue();
+                break;
             case LESS_EQUAL_THAN_FIRST_HALF:
                 pos = available / 4;
                 break;
@@ -273,7 +276,7 @@ public class MyBufferedChannelTestConfigurer {
             }
 
             /* Write into SUT */
-            assert sut.position() == 0;
+            assert sut.position() == fileChannel.position();
             sut.write(expectedWrite);
 
             /* Read from file channel */
