@@ -576,8 +576,18 @@
                 <withHistory>false</withHistory>
             </properties>
 
+
             <build>
                 <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <environmentVariables>
+                                <flag>pitest</flag>
+                            </environmentVariables>
+                        </configuration>
+                    </plugin>
                     <plugin>
                         <groupId>org.pitest</groupId>
                         <artifactId>pitest-maven</artifactId>
@@ -590,6 +600,9 @@
                             </execution>
                         </executions>
                         <configuration>
+                            <environmentVariables>
+                                <flag>pitest</flag>
+                            </environmentVariables>
                             <reportsDirectory>${project.build.directory}/site/pit-reports</reportsDirectory>
                             <threads>4</threads>
                             <targetClasses>
