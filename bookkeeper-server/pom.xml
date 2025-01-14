@@ -611,6 +611,7 @@
                             <targetTests>
                                 <param>org.apache.bookkeeper.bookie.MyBufferedChannelTest</param>
                             </targetTests>
+                            <timeoutConstant>10000</timeoutConstant>
                             <avoidCallsTo>
                                 <avoidCallsTo>java.util.logging</avoidCallsTo>
                                 <avoidCallsTo>org.apache.log4j</avoidCallsTo>
