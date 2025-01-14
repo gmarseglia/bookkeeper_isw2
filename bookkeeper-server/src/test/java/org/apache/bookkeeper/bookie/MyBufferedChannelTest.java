@@ -206,8 +206,8 @@ public class MyBufferedChannelTest {
                 SUT.read(testState.dest, testState.pos, testState.length);
                 expected = testState.expectedBuffer;
                 actual = testState.dest;
-                Assertions.assertEquals(expected.capacity(), actual.capacity());
-                for (int i = 0; i < expected.capacity(); i++) {
+                Assertions.assertEquals(expected.writerIndex(), actual.writerIndex());
+                for (int i = 0; i < expected.writerIndex(); i++) {
                     Assertions.assertEquals(expected.getByte(i), actual.getByte(i), String.format("Byte: %d", i));
                 }
                 break;
