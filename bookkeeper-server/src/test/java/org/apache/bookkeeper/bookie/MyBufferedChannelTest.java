@@ -144,8 +144,9 @@ public class MyBufferedChannelTest {
         ));
 
         for (TestState state : activeTestState) {
-            if (!state.successful && "pitest".equals(envFlag))
-                continue;
+            if (!state.successful)
+                if (("pitest".equals(envFlag) || "onlySuccess".equals(envFlag)))
+                    continue;
             activeArguments.add(Arguments.of(state));
         }
 

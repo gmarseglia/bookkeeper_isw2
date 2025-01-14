@@ -1,0 +1,52 @@
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Test coverage of bookkeeper-server
+
+on: [ push, pull_request ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Install with Maven
+        run: mvn -B install -DskipTests
+
+      - name: Test with Jacoco
+        working-directory: bookkeeper-server/
+        run: mvn -B test -Pjacoco,onlySuccess,customTest
+
+      - name: Install ba-dua-agent-rt
+        working-directory: bookkeeper-server/ba-dua/ba-dua-agent-rt/
+        run: mvn -B install -DskipTests
+      - name: Install ba-dua-agent-cli
+        working-directory: bookkeeper-server/ba-dua/ba-dua-cli/
+        run: mvn -B install -DskipTests
+      - name: Install xmllint
+        run: |
+          sudo apt update
+          sudo apt install libxml2-utils
+      - name: Test with ba-dua
+        working-directory: bookkeeper-server/
+        run: mvn -B test -Pbadua,onlySuccess,customTest
+
+      - name: Save results
+        working-directory: bookkeeper-server/results
+        run: ./saveCurrentResult.sh current-coverage-only-success
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Coverage (only success tests) Report
+          path: bookkeeper-server/results/current-coverage-only-success
