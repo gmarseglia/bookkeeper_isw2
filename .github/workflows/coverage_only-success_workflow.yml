@@ -6,7 +6,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Test coverage of bookkeeper-server
+name: Test coverage (only successful tests) of bookkeeper-server
 
 on: [ push, pull_request ]
 
