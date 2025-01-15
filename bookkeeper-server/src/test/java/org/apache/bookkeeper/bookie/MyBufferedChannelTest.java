@@ -54,7 +54,7 @@ public class MyBufferedChannelTest {
         activeTestState.add(new TestState(
                 "#3: Read from read buffer",
                 fromRead,
-                DestState.EQUAL_AS_LENGTH, PosState.LESS_EQUAL_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
+                DestState.GREATER_THAN_LENGTH, PosState.LESS_EQUAL_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
                 ExpectedState.READ_TIMES_LENGTH, true
         ));
 
