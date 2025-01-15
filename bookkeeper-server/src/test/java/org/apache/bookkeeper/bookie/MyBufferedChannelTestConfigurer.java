@@ -33,7 +33,7 @@ public class MyBufferedChannelTestConfigurer {
         this.configure(testState);
 
         /* Compute available bytes */
-        int available = FILE_SIZE;
+        int available = (int) testState.sut.position();
 
         /* Set up the position */
         int pos;
@@ -41,8 +41,11 @@ public class MyBufferedChannelTestConfigurer {
             case LESS_THAN_ZERO:
                 pos = -1;
                 break;
-            case LESS_EQUAL_THAN_AVAILABLE:
+            case EQUAL_AS_ZERO:
                 pos = 0;
+                break;
+            case LESS_EQUAL_THAN_AVAILABLE:
+                pos = 1;
                 break;
             case LESS_EQUAL_THAN_FIRST_HALF:
                 pos = available / 4;
@@ -86,8 +89,12 @@ public class MyBufferedChannelTestConfigurer {
                 destSize = Math.max(length - 1, 0);
                 destBuf = ByteBufAllocator.DEFAULT.buffer(destSize);
                 break;
-            case GREATER_EQUAL_THAN_LENGTH:
+            case EQUAL_THAN_LENGTH:
                 destSize = Math.max(length, 0);
+                destBuf = ByteBufAllocator.DEFAULT.buffer(destSize);
+                break;
+            case GREATER_THAN_LENGTH:
+                destSize = Math.max(length + 1, 0);
                 destBuf = ByteBufAllocator.DEFAULT.buffer(destSize);
                 break;
             case NULL:
