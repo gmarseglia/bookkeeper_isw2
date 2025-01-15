@@ -33,6 +33,7 @@ public class MyBufferedChannelTest {
         Configuration nullWrite = new Configuration(BufferState.NULL, BufferState.EMPTY, BufferState.EMPTY);
         Configuration truncatedFile = new Configuration(BufferState.EMPTY, BufferState.EMPTY, BufferState.TRUNCATED);
         Configuration smallRead = new Configuration(BufferState.EMPTY, BufferState.SECOND_HALF, BufferState.NON_EMPTY);
+        Configuration zeroRead = new Configuration(BufferState.EMPTY, BufferState.ZERO_CAPACITY, BufferState.NON_EMPTY);
 
         /* Read from empty file */
         activeTestState.add(new TestState(
@@ -130,7 +131,7 @@ public class MyBufferedChannelTest {
         ));
 
         activeTestState.add(new TestState(
-                "13: read on file truncated after SUT creation",
+                "#13: read on file truncated after SUT creation",
                 truncatedFile,
                 DestState.EQUAL_AS_LENGTH, PosState.LESS_EQUAL_THAN_AVAILABLE, LengthState.LESS_EQUAL_THAN_READABLE,
                 ExpectedState.IO_EXCEPTION, true
@@ -141,6 +142,14 @@ public class MyBufferedChannelTest {
                 smallRead,
                 DestState.EQUAL_AS_LENGTH, PosState.LESS_EQUAL_THAN_FIRST_HALF, LengthState.LESS_EQUAL_THAN_READABLE,
                 ExpectedState.FILE_TIMES_LENGTH, true
+        ));
+
+        /* Read from file */
+        activeTestState.add(new TestState(
+                "#15: read buffer of zero capacity",
+                zeroRead,
+                DestState.EQUAL_AS_LENGTH, PosState.EQUAL_AS_ZERO, LengthState.LESS_EQUAL_THAN_READABLE,
+                ExpectedState.FILE_TIMES_LENGTH, false
         ));
 
         for (TestState state : activeTestState) {
@@ -221,7 +230,7 @@ public class MyBufferedChannelTest {
     }
 
     public enum BufferState {
-        EMPTY, NON_EMPTY, NULL, TRUNCATED, SECOND_HALF
+        EMPTY, NON_EMPTY, NULL, TRUNCATED, SECOND_HALF, ZERO_CAPACITY
     }
 
     public enum DestState {
@@ -233,12 +242,12 @@ public class MyBufferedChannelTest {
     }
 
     public enum LengthState {
-        LESS_THAN_ZERO, EQUAL_AS_ZERO, LESS_EQUAL_THAN_READABLE, GREATER_THAN_READABLE;
+        LESS_THAN_ZERO, EQUAL_AS_ZERO, LESS_EQUAL_THAN_READABLE, GREATER_THAN_READABLE
     }
 
     public enum ExpectedState {
         EMPTY, FILE_TIMES_LENGTH, READ_TIMES_LENGTH, WRITE_TIMES_LENGTH, FILE_TIMES_READABLE,
-        EOF, ILLEGAL_ARGUMENT, NULL_POINTER, INDEX_OUT_OF_BOUNDS, IO_EXCEPTION;
+        EOF, ILLEGAL_ARGUMENT, NULL_POINTER, INDEX_OUT_OF_BOUNDS, IO_EXCEPTION
     }
 
     public static class Configuration {

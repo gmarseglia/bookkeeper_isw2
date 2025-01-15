@@ -169,10 +169,20 @@ public class MyBufferedChannelTestConfigurer {
         int writeCapacity, readCapacity;
         writeCapacity = FILE_SIZE + 1;
 
-        if (testState.configuration.readBufferState == MyBufferedChannelTest.BufferState.SECOND_HALF) {
-            readCapacity = FILE_SIZE / 2 + 1;
-        } else {
-            readCapacity = FILE_SIZE + 1;
+        switch (testState.configuration.readBufferState) {
+            case SECOND_HALF:
+                readCapacity = FILE_SIZE / 2 + 1;
+                break;
+            case ZERO_CAPACITY:
+                readCapacity = 0;
+                break;
+            case NON_EMPTY:
+            case TRUNCATED:
+            case EMPTY:
+                readCapacity = FILE_SIZE + 1;
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + testState.configuration.readBufferState);
         }
 
         /* Create the BufferedChannel class */
