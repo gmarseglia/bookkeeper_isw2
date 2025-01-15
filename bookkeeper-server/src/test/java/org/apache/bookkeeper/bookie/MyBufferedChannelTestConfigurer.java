@@ -89,7 +89,7 @@ public class MyBufferedChannelTestConfigurer {
                 destSize = Math.max(length - 1, 0);
                 destBuf = ByteBufAllocator.DEFAULT.buffer(destSize);
                 break;
-            case EQUAL_THAN_LENGTH:
+            case EQUAL_AS_LENGTH:
                 destSize = Math.max(length, 0);
                 destBuf = ByteBufAllocator.DEFAULT.buffer(destSize);
                 break;
