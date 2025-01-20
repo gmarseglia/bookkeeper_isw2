@@ -1,6 +1,7 @@
 package org.apache.bookkeeper.bookie.storage.ldb;
 
 import io.netty.buffer.ByteBuf;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -121,7 +122,16 @@ class MyReadCacheTest {
                 testState.entry == null ? "null" : testState.entry.writerIndex());
         logger.info(debugMsg);
 
+        testState.sut.put(testState.ledgerId, testState.entryId, testState.entry);
 
+        for (MyReadCacheTestEntry expectedEntry : testState.expectedEntries) {
+            int size = expectedEntry.content.writerIndex();
+            ByteBuf actual = testState.sut.get(expectedEntry.ledgerId, expectedEntry.entryId);
+            logger.info("actual:" + actual.toString());
+            Assertions.assertEquals(
+                    expectedEntry.content.internalNioBuffer(0, size),
+                    actual.internalNioBuffer(0, size));
+        }
     }
 
     public enum SegmentState {
