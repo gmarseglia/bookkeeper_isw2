@@ -1,5 +1,6 @@
 package org.apache.bookkeeper.bookie.storage.ldb;
 
+import io.netty.buffer.ByteBuf;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -27,17 +28,7 @@ class MyReadCacheTest {
         Configuration allFull = new Configuration(SegmentState.FULL, SegmentState.FULL);
 
         availableTestState.add(new TestState(
-                "#01: put of null",
-                firstFull,
-                CompositeIdState.NON_PRESENT, EntryState.NULL,
-                EnumSet.of(
-                        ExpectedFlag.NULL_POINTER_EXCEPTION,
-                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
-                false
-        ));
-
-        availableTestState.add(new TestState(
-                "#02: put in empty cache",
+                "#01: put in empty cache",
                 allEmpty,
                 CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_LOW,
                 EnumSet.of(
@@ -45,55 +36,64 @@ class MyReadCacheTest {
                 false
         ));
 
-        availableTestState.add(new TestState(
-                "#03: put on partially full segment",
-                firstPartial,
-                CompositeIdState.PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
-                EnumSet.of(
-                        ExpectedFlag.NEW_ENTRY_UPDATED,
-                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
-                false
-        ));
-
-        availableTestState.add(new TestState(
-                "#04: put of second segment, so it's partially full",
-                firstPartial,
-                CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_LOW,
-                EnumSet.of(
-                        ExpectedFlag.NEW_ENTRY_ADDED,
-                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
-                false
-        ));
-
-        availableTestState.add(new TestState(
-                "#05: put of second segment, so it's full",
-                firstFull,
-                CompositeIdState.PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
-                EnumSet.of(
-                        ExpectedFlag.NEW_ENTRY_UPDATED,
-                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
-                false
-        ));
-
-        availableTestState.add(new TestState(
-                "#06: put with overwrite",
-                allFull,
-                CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
-                EnumSet.of(
-                        ExpectedFlag.NEW_ENTRY_ADDED,
-                        ExpectedFlag.ONLY_SECOND_SEGMENT_ENTRIES_READABLE),
-                false
-        ));
-
-        availableTestState.add(new TestState(
-                "#07: entry too big",
-                firstPartial,
-                CompositeIdState.NON_PRESENT, EntryState.GREATER_THAN_SEGMENT_SIZE,
-                EnumSet.of(
-                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
-                false
-        ));
-
+        // availableTestState.add(new TestState(
+        //         "#02: put on partially full segment",
+        //         firstPartial,
+        //         CompositeIdState.PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
+        //         EnumSet.of(
+        //                 ExpectedFlag.NEW_ENTRY_UPDATED,
+        //                 ExpectedFlag.PRIOR_ENTRIES_READABLE),
+        //         false
+        // ));
+        //
+        // availableTestState.add(new TestState(
+        //         "#03: put of second segment, so it's partially full",
+        //         firstPartial,
+        //         CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_LOW,
+        //         EnumSet.of(
+        //                 ExpectedFlag.NEW_ENTRY_ADDED,
+        //                 ExpectedFlag.PRIOR_ENTRIES_READABLE),
+        //         false
+        // ));
+        //
+        // availableTestState.add(new TestState(
+        //         "#04: put of second segment, so it's full",
+        //         firstFull,
+        //         CompositeIdState.PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
+        //         EnumSet.of(
+        //                 ExpectedFlag.NEW_ENTRY_UPDATED,
+        //                 ExpectedFlag.PRIOR_ENTRIES_READABLE),
+        //         false
+        // ));
+        //
+        // availableTestState.add(new TestState(
+        //         "#05: put with overwrite",
+        //         allFull,
+        //         CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
+        //         EnumSet.of(
+        //                 ExpectedFlag.NEW_ENTRY_ADDED,
+        //                 ExpectedFlag.ONLY_SECOND_SEGMENT_ENTRIES_READABLE),
+        //         false
+        // ));
+        //
+        // availableTestState.add(new TestState(
+        //         "#06: entry too big",
+        //         firstPartial,
+        //         CompositeIdState.NON_PRESENT, EntryState.GREATER_THAN_SEGMENT_SIZE,
+        //         EnumSet.of(
+        //                 ExpectedFlag.PRIOR_ENTRIES_READABLE),
+        //         false
+        // ));
+        //
+        // availableTestState.add(new TestState(
+        //         "#07: put of null",
+        //         firstFull,
+        //         CompositeIdState.NON_PRESENT, EntryState.NULL,
+        //         EnumSet.of(
+        //                 ExpectedFlag.NULL_POINTER_EXCEPTION,
+        //                 ExpectedFlag.PRIOR_ENTRIES_READABLE),
+        //         false
+        // ));
 
 
         for (TestState state : availableTestState) {
@@ -110,6 +110,18 @@ class MyReadCacheTest {
     @MethodSource("putTestArguments")
     void putTest(TestState testState) {
         logger.info(testState.description);
+
+        MyReadCacheTestConfigurer configurer = new MyReadCacheTestConfigurer();
+        configurer.setup(testState);
+
+        String debugMsg = String.format(
+                "ledgerId: %d, entryId: %d, entry.writerIndex(): %s",
+                testState.ledgerId,
+                testState.entryId,
+                testState.entry == null ? "null" : testState.entry.writerIndex());
+        logger.info(debugMsg);
+
+
     }
 
     public enum SegmentState {
@@ -149,6 +161,11 @@ class MyReadCacheTest {
         EntryState entryState;
         EnumSet<ExpectedFlag> expectedState;
         boolean successful;
+
+        ReadCache sut;
+        int ledgerId, entryId;
+        ByteBuf entry;
+        List<MyReadCacheTestEntry> expectedEntries = new ArrayList<>();
 
         public TestState(String description, Configuration configuration, CompositeIdState compositeIdState, EntryState entryState, EnumSet<ExpectedFlag> expectedState, boolean successful) {
             this.description = description;
