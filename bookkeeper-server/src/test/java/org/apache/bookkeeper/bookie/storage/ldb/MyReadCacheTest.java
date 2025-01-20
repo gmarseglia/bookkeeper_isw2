@@ -21,6 +21,81 @@ class MyReadCacheTest {
         List<TestState> availableTestState = new ArrayList<>();
         List<Arguments> activeArguments = new ArrayList<>();
 
+        Configuration firstFull = new Configuration(SegmentState.FULL, SegmentState.EMPTY);
+        Configuration allEmpty = new Configuration(SegmentState.EMPTY, SegmentState.EMPTY);
+        Configuration firstPartial = new Configuration(SegmentState.PARTIAL, SegmentState.EMPTY);
+        Configuration allFull = new Configuration(SegmentState.FULL, SegmentState.FULL);
+
+        availableTestState.add(new TestState(
+                "#01: put of null",
+                firstFull,
+                CompositeIdState.NON_PRESENT, EntryState.NULL,
+                EnumSet.of(
+                        ExpectedFlag.NULL_POINTER_EXCEPTION,
+                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
+                false
+        ));
+
+        availableTestState.add(new TestState(
+                "#02: put in empty cache",
+                allEmpty,
+                CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_LOW,
+                EnumSet.of(
+                        ExpectedFlag.NEW_ENTRY_ADDED),
+                false
+        ));
+
+        availableTestState.add(new TestState(
+                "#03: put on partially full segment",
+                firstPartial,
+                CompositeIdState.PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
+                EnumSet.of(
+                        ExpectedFlag.NEW_ENTRY_UPDATED,
+                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
+                false
+        ));
+
+        availableTestState.add(new TestState(
+                "#04: put of second segment, so it's partially full",
+                firstPartial,
+                CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_LOW,
+                EnumSet.of(
+                        ExpectedFlag.NEW_ENTRY_ADDED,
+                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
+                false
+        ));
+
+        availableTestState.add(new TestState(
+                "#05: put of second segment, so it's full",
+                firstFull,
+                CompositeIdState.PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
+                EnumSet.of(
+                        ExpectedFlag.NEW_ENTRY_UPDATED,
+                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
+                false
+        ));
+
+        availableTestState.add(new TestState(
+                "#06: put with overwrite",
+                allFull,
+                CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
+                EnumSet.of(
+                        ExpectedFlag.NEW_ENTRY_ADDED,
+                        ExpectedFlag.ONLY_SECOND_SEGMENT_ENTRIES_READABLE),
+                false
+        ));
+
+        availableTestState.add(new TestState(
+                "#07: entry too big",
+                firstPartial,
+                CompositeIdState.NON_PRESENT, EntryState.GREATER_THAN_SEGMENT_SIZE,
+                EnumSet.of(
+                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
+                false
+        ));
+
+
+
         for (TestState state : availableTestState) {
             if (!state.successful)
                 if (("pitest".equals(envFlag) || "onlySuccess".equals(envFlag)))
