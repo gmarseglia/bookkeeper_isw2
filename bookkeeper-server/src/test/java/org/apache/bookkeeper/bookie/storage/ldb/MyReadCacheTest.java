@@ -74,7 +74,7 @@ class MyReadCacheTest {
                 CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
                 EnumSet.of(
                         ExpectedFlag.NEW_ENTRY_ADDED,
-                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
+                        ExpectedFlag.ONLY_SECOND_SEGMENT_ENTRIES_READABLE),
                 true
         ));
 
