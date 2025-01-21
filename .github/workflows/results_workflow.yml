@@ -27,4 +27,4 @@ jobs:
 
       - name: Test with Junit
         working-directory: bookkeeper-server/
-        run: mvn -B test -PcustomTest
+        run: mvn -B test -PMyAllSuite,customTest
