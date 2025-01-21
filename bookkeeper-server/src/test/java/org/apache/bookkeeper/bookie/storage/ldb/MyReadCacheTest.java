@@ -84,7 +84,7 @@ class MyReadCacheTest {
                 CompositeIdState.NON_PRESENT, EntryState.GREATER_THAN_SEGMENT_SIZE,
                 EnumSet.of(
                         ExpectedFlag.PRIOR_ENTRIES_READABLE),
-                false
+                true
         ));
 
         availableTestState.add(new TestState(
@@ -94,7 +94,7 @@ class MyReadCacheTest {
                 EnumSet.of(
                         ExpectedFlag.NULL_POINTER_EXCEPTION,
                         ExpectedFlag.PRIOR_ENTRIES_READABLE),
-                false
+                true
         ));
 
         // availableTestState.add(new TestState(
