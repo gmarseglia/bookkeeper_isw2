@@ -27,7 +27,7 @@ jobs:
 
       - name: Test with PIT
         working-directory: bookkeeper-server/
-        run: mvn -B test -Ppitest,customTest
+        run: mvn -B test -PMyAllSuite,pitest,customTest
 
       - name: Save results
         working-directory: bookkeeper-server/results

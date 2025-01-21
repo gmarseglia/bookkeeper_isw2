@@ -27,7 +27,7 @@ jobs:
 
       - name: Test with Jacoco
         working-directory: bookkeeper-server/
-        run: mvn -B test -Pjacoco,ignoreTestFailure,customTest
+        run: mvn -B test -PMyAllSuite,jacoco,ignoreTestFailure,customTest
 
       - name: Install ba-dua-agent-rt
         working-directory: bookkeeper-server/ba-dua/ba-dua-agent-rt/
@@ -41,7 +41,7 @@ jobs:
           sudo apt install libxml2-utils
       - name: Test with ba-dua
         working-directory: bookkeeper-server/
-        run: mvn -B test -Pbadua,ignoreTestFailure,customTest
+        run: mvn -B test -PMyAllSuite,badua,ignoreTestFailure,customTest
 
       - name: Save results
         working-directory: bookkeeper-server/results
