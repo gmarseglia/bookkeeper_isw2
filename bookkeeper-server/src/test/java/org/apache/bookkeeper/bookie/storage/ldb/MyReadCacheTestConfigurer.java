@@ -61,6 +61,10 @@ public class MyReadCacheTestConfigurer {
                 size = actualSegmentCapacity + 1;
                 content = getByteBuf(size, getByteFromId(ledgerId, entryId));
                 break;
+            case LESS_EQUAL_THAN_SEGMENT_SIZE_HIGH:
+                size = MAX_SEGMENT_SIZE;
+                content = getByteBuf(size, getByteFromId(ledgerId, entryId));
+                break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.entryState);
         }
@@ -115,28 +119,49 @@ public class MyReadCacheTestConfigurer {
 
         /* Set up the state of the first segment */
         MyReadCacheTestEntry firstEntry;
-        int firstSize;
-        int ledgerId, entryId;
+        Integer firstSize = null;
+        long ledgerId, entryId;
+        boolean concludeConfiguration;
         switch (testState.configuration.segment1State) {
             case EMPTY:
                 actualSegmentCapacity = MAX_SEGMENT_SIZE;
-                return;
+                concludeConfiguration = true;
+                break;
             case PARTIAL:
                 firstSize = PARTIAL_SEGMENT_SIZE;
-                actualSegmentCapacity = MAX_SEGMENT_SIZE - firstSize;
-                // Put the entry in the sut
-                ledgerId = FIRST_SEGMENT_LEDGER;
-                entryId = 1;
-                ByteBuf content = getByteBuf(firstSize, getByteFromId(ledgerId, entryId));
-                sut.put(ledgerId, entryId, content);
-                // Add the entry to the list of added entries
-                firstEntry = new MyReadCacheTestEntry(ledgerId, entryId, content);
-                addedEntries.add(firstEntry);
-                return;
+                concludeConfiguration = true;
+                break;
             case FULL:
-                throw new IllegalStateException("#TODO: " + testState.configuration.segment1State);
+                firstSize = MAX_SEGMENT_SIZE;
+                concludeConfiguration = false;
+                break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.configuration.segment1State);
+        }
+
+        if (firstSize != null) {
+            actualSegmentCapacity = MAX_SEGMENT_SIZE - firstSize;
+
+            // Put the entry in the sut
+            ledgerId = FIRST_SEGMENT_LEDGER;
+            entryId = 1;
+            ByteBuf content = getByteBuf(firstSize, getByteFromId(ledgerId, entryId));
+            sut.put(ledgerId, entryId, content);
+
+            // Add the entry to the list of added entries
+            firstEntry = new MyReadCacheTestEntry(ledgerId, entryId, content);
+            addedEntries.add(firstEntry);
+        }
+
+        if (concludeConfiguration) return;
+
+        /* Set up the state of the second segment */
+        switch (testState.configuration.segment2State) {
+            case EMPTY:
+                actualSegmentCapacity = MAX_SEGMENT_SIZE;
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + testState.configuration.segment2State);
         }
     }
 

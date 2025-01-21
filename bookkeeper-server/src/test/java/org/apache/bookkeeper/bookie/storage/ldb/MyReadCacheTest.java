@@ -58,16 +58,16 @@ class MyReadCacheTest {
                 true
         ));
 
-        // availableTestState.add(new TestState(
-        //         "#04: put of second segment, so it's full",
-        //         firstFull,
-        //         CompositeIdState.PRESENT, EntryState.LESS_EQUAL_THAN_SEGMENT_SIZE_HIGH,
-        //         EnumSet.of(
-        //                 ExpectedFlag.NEW_ENTRY_UPDATED,
-        //                 ExpectedFlag.PRIOR_ENTRIES_READABLE),
-        //         false
-        // ));
-        //
+        availableTestState.add(new TestState(
+                "#04: put of second segment, so it's full",
+                firstFull,
+                CompositeIdState.PRESENT, EntryState.LESS_EQUAL_THAN_SEGMENT_SIZE_HIGH,
+                EnumSet.of(
+                        ExpectedFlag.NEW_ENTRY_UPDATED,
+                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
+                true
+        ));
+
         // availableTestState.add(new TestState(
         //         "#05: put with overwrite",
         //         allFull,
