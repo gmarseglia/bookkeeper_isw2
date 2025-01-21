@@ -66,9 +66,11 @@ public class MyReadCacheTestConfigurer {
 
         /* Set up expectedEntries */
         List<MyReadCacheTestEntry> expectedEntries = testState.expectedEntries;
+        // Add newEntry to expectedEntries
         if (testState.expectedState.contains(MyReadCacheTest.ExpectedFlag.NEW_ENTRY_ADDED)) {
             expectedEntries.add(newEntry);
         }
+        // Update newEntry content and add it to expectedEntries
         if (testState.expectedState.contains(MyReadCacheTest.ExpectedFlag.NEW_ENTRY_UPDATED)) {
             MyReadCacheTestEntry found = null;
             for (MyReadCacheTestEntry entry : addedEntries) {
@@ -86,8 +88,14 @@ public class MyReadCacheTestConfigurer {
             // Add newEntry to the list of expected entries
             expectedEntries.add(found);
         }
+        // Add all entries in addedEntries different from newEntry to expectedEntries
         if (testState.expectedState.contains(MyReadCacheTest.ExpectedFlag.PRIOR_ENTRIES_READABLE)) {
-            // throw new IllegalStateException("#TODO: PRIOR_ENTRIES_READABLE");
+            for (MyReadCacheTestEntry entry : addedEntries) {
+                // Only added entries different from newEntry
+                if (entry.ledgerId != newEntry.ledgerId || entry.entryId != newEntry.entryId) {
+                    expectedEntries.add(entry);
+                }
+            }
         }
         if (testState.expectedState.contains(MyReadCacheTest.ExpectedFlag.ONLY_SECOND_SEGMENT_ENTRIES_READABLE)) {
             throw new IllegalStateException("#TODO: ONLY_SECOND_SEGMENT_ENTRIES_READABLE");

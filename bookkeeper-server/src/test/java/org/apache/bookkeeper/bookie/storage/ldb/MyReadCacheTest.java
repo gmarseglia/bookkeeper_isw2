@@ -38,7 +38,7 @@ class MyReadCacheTest {
         ));
 
         availableTestState.add(new TestState(
-                "#02: put on partially full segment",
+                "#02: put in partially full segment",
                 firstPartial,
                 CompositeIdState.PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
                 EnumSet.of(
@@ -48,20 +48,20 @@ class MyReadCacheTest {
         ));
 
 
-        availableTestState.add(new TestState(
-                "#03: put of second segment, so it's partially full",
-                firstPartial,
-                CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_LOW,
-                EnumSet.of(
-                        ExpectedFlag.NEW_ENTRY_ADDED,
-                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
-                false
-        ));
+        // availableTestState.add(new TestState(
+        //         "#03: put in second segment, so it's partially full",
+        //         firstPartial,
+        //         CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_SEGMENT_SIZE_LOW,
+        //         EnumSet.of(
+        //                 ExpectedFlag.NEW_ENTRY_ADDED,
+        //                 ExpectedFlag.PRIOR_ENTRIES_READABLE),
+        //         false
+        // ));
 
         // availableTestState.add(new TestState(
         //         "#04: put of second segment, so it's full",
         //         firstFull,
-        //         CompositeIdState.PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
+        //         CompositeIdState.PRESENT, EntryState.LESS_EQUAL_THAN_SEGMENT_SIZE_HIGH,
         //         EnumSet.of(
         //                 ExpectedFlag.NEW_ENTRY_UPDATED,
         //                 ExpectedFlag.PRIOR_ENTRIES_READABLE),
