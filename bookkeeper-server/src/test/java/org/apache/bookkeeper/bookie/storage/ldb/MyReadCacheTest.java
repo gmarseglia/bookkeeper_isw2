@@ -87,15 +87,15 @@ class MyReadCacheTest {
                 false
         ));
 
-        // availableTestState.add(new TestState(
-        //         "#07: put of null",
-        //         firstFull,
-        //         CompositeIdState.NON_PRESENT, EntryState.NULL,
-        //         EnumSet.of(
-        //                 ExpectedFlag.NULL_POINTER_EXCEPTION,
-        //                 ExpectedFlag.PRIOR_ENTRIES_READABLE),
-        //         false
-        // ));
+        availableTestState.add(new TestState(
+                "#07: put of null",
+                firstFull,
+                CompositeIdState.NON_PRESENT, EntryState.NULL,
+                EnumSet.of(
+                        ExpectedFlag.NULL_POINTER_EXCEPTION,
+                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
+                false
+        ));
 
         // availableTestState.add(new TestState(
         //         "#08: put of empty",
@@ -133,16 +133,24 @@ class MyReadCacheTest {
                 testState.entry == null ? "null" : testState.entry.writerIndex());
         logger.info(debugMsg);
 
-        testState.sut.put(testState.ledgerId, testState.entryId, testState.entry);
+        if (testState.expectedState.contains(ExpectedFlag.NULL_POINTER_EXCEPTION)) {
+            Assertions.assertThrows(
+                    NullPointerException.class,
+                    () -> testState.sut.put(testState.ledgerId, testState.entryId, testState.entry));
+        } else {
+            testState.sut.put(testState.ledgerId, testState.entryId, testState.entry);
+        }
 
         logger.info(String.format("# of assertEquals expected: %d", testState.expectedEntries.size()));
         for (MyReadCacheTestEntry expectedEntry : testState.expectedEntries) {
             int size = expectedEntry.content.writerIndex();
             ByteBuf actual = testState.sut.get(expectedEntry.ledgerId, expectedEntry.entryId);
             logger.info(String.format("actual: %s", actual.toString()));
+
             Assertions.assertEquals(
                     expectedEntry.content.internalNioBuffer(0, size),
                     actual.internalNioBuffer(0, size));
+
             actual.release();
         }
     }

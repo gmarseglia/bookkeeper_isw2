@@ -62,6 +62,9 @@ public class MyReadCacheTestConfigurer {
             case GREATER_THAN_SEGMENT_SIZE:
                 size = MAX_SEGMENT_SIZE + 1;
                 break;
+            case NULL:
+                size = -1;
+                break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.entryState);
         }
@@ -199,6 +202,8 @@ public class MyReadCacheTestConfigurer {
     }
 
     private ByteBuf getByteBuf(int size, byte fill) {
+        if (size < 0) return null;
+
         ByteBuf result = ByteBufAllocator.DEFAULT.buffer(size);
         for (int i = 0; i < size; i++) {
             result.writeByte(fill);
