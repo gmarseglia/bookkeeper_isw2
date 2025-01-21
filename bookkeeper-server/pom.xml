@@ -433,6 +433,37 @@
             </properties>
         </profile>
 
+        <!-- Profile for the activation for the ReadCache Test suite -->
+        <profile>
+            <id>MyAllSuite</id>
+            <properties>
+                <CustomTest.surefireIncludes>
+                    MyBufferedChannelTest.java,
+                    ,MyReadCacheTest.java
+                </CustomTest.surefireIncludes>
+                <CustomTest.jacocoIncludes>
+                    org/apache/bookkeeper/bookie/BufferedChannel.class,
+                    ,org/apache/bookkeeper/bookie/storage/ldb/ReadCache.class
+                </CustomTest.jacocoIncludes>
+                <CustomTest.baduaArgument>
+                    ba-dua/classes
+                </CustomTest.baduaArgument>
+                <CustomTest.pitestTargetClasses>
+                    org.apache.bookkeeper.bookie.BufferedChannel,
+                    ,org.apache.bookkeeper.bookie.storage.ldb.ReadCache
+                </CustomTest.pitestTargetClasses>
+                <CustomTest.pitestTargetTests>
+                    org.apache.bookkeeper.bookie.MyBufferedChannelTest,
+                    ,org.apache.bookkeeper.bookie.storage.ldb.MyReadCacheTest
+                </CustomTest.pitestTargetTests>
+                <CustomTest.pitestExcludedMethods>
+                    close,write,position,getFileChannelPosition,flushAndForceWrite,flushAndForceWriteIfRegularFlush,
+                    ,flush,forceWrite,clear,getNumOfBytesInWriteBuffer,getUnpersistedBytes,
+                    ,close,get,hasEntry,size,count
+                </CustomTest.pitestExcludedMethods>
+            </properties>
+        </profile>
+
         <!-- Custom test definition profile -->
         <profile>
             <id>customTest</id>

@@ -2,6 +2,7 @@ package org.apache.bookkeeper.bookie.storage.ldb;
 
 import io.netty.buffer.ByteBuf;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -120,6 +121,7 @@ class MyReadCacheTest {
 
     @ParameterizedTest
     @MethodSource("putTestArguments")
+    @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
     void putTest(TestState testState) {
         logger.info(testState.description);
 
