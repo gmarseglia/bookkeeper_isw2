@@ -385,7 +385,6 @@
         <!-- Profile for the activation for the BufferedChannel Test suite -->
         <profile>
             <id>MyBufferedChannelSuite</id>
-
             <properties>
                 <CustomTest.surefireIncludes>
                     MyBufferedChannelTest.java
@@ -407,7 +406,6 @@
                     ,flush,forceWrite,clear,getNumOfBytesInWriteBuffer,getUnpersistedBytes,
                 </CustomTest.pitestExcludedMethods>
             </properties>
-
         </profile>
 
         <!-- Custom test definition profile -->
