@@ -97,15 +97,15 @@ class MyReadCacheTest {
                 true
         ));
 
-        // availableTestState.add(new TestState(
-        //         "#08: put of empty",
-        //         firstFull,
-        //         CompositeIdState.NON_PRESENT, EntryState.EMPTY,
-        //         EnumSet.of(
-        //                 ExpectedFlag.PRIOR_ENTRIES_READABLE,
-        //                 ExpectedFlag.NEW_ENTRY_ADDED),
-        //         false
-        // ));
+        availableTestState.add(new TestState(
+                "#08: put of empty",
+                firstFull,
+                CompositeIdState.NON_PRESENT, EntryState.EMPTY,
+                EnumSet.of(
+                        ExpectedFlag.PRIOR_ENTRIES_READABLE,
+                        ExpectedFlag.NEW_ENTRY_ADDED),
+                false
+        ));
 
 
         for (TestState state : availableTestState) {

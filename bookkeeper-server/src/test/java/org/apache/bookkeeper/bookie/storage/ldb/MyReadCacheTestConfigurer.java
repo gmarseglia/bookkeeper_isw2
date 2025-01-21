@@ -65,6 +65,9 @@ public class MyReadCacheTestConfigurer {
             case NULL:
                 size = -1;
                 break;
+            case EMPTY:
+                size = 0;
+                break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.entryState);
         }
