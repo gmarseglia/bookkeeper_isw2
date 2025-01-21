@@ -57,6 +57,10 @@ public class MyReadCacheTestConfigurer {
                 size = actualSegmentCapacity;
                 content = getByteBuf(size, getByteFromId(ledgerId, entryId));
                 break;
+            case LESS_EQUAL_THAN_SEGMENT_SIZE_LOW:
+                size = actualSegmentCapacity + 1;
+                content = getByteBuf(size, getByteFromId(ledgerId, entryId));
+                break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.entryState);
         }
