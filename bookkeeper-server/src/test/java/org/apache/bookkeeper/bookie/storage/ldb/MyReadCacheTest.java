@@ -37,15 +37,16 @@ class MyReadCacheTest {
                 false
         ));
 
-        // availableTestState.add(new TestState(
-        //         "#02: put on partially full segment",
-        //         firstPartial,
-        //         CompositeIdState.PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
-        //         EnumSet.of(
-        //                 ExpectedFlag.NEW_ENTRY_UPDATED,
-        //                 ExpectedFlag.PRIOR_ENTRIES_READABLE),
-        //         false
-        // ));
+        availableTestState.add(new TestState(
+                "#02: put on partially full segment",
+                firstPartial,
+                CompositeIdState.PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
+                EnumSet.of(
+                        ExpectedFlag.NEW_ENTRY_UPDATED,
+                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
+                false
+        ));
+
         //
         // availableTestState.add(new TestState(
         //         "#03: put of second segment, so it's partially full",
@@ -131,6 +132,7 @@ class MyReadCacheTest {
             Assertions.assertEquals(
                     expectedEntry.content.internalNioBuffer(0, size),
                     actual.internalNioBuffer(0, size));
+            actual.release();
         }
     }
 
@@ -173,7 +175,7 @@ class MyReadCacheTest {
         boolean successful;
 
         ReadCache sut;
-        int ledgerId, entryId;
+        long ledgerId, entryId;
         ByteBuf entry;
         List<MyReadCacheTestEntry> expectedEntries = new ArrayList<>();
 
