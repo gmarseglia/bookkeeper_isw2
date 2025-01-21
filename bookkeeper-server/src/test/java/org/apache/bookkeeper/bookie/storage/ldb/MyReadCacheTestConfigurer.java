@@ -82,7 +82,17 @@ public class MyReadCacheTestConfigurer {
 
             // Update content of updated entry
             found.content = newEntry.content;
+
+            // Add newEntry to the list of expected entries
+            expectedEntries.add(found);
         }
+        if (testState.expectedState.contains(MyReadCacheTest.ExpectedFlag.PRIOR_ENTRIES_READABLE)) {
+            // throw new IllegalStateException("#TODO: PRIOR_ENTRIES_READABLE");
+        }
+        if (testState.expectedState.contains(MyReadCacheTest.ExpectedFlag.ONLY_SECOND_SEGMENT_ENTRIES_READABLE)) {
+            throw new IllegalStateException("#TODO: ONLY_SECOND_SEGMENT_ENTRIES_READABLE");
+        }
+
     }
 
     private void configure(MyReadCacheTest.TestState testState) {

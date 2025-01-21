@@ -47,17 +47,17 @@ class MyReadCacheTest {
                 false
         ));
 
-        //
-        // availableTestState.add(new TestState(
-        //         "#03: put of second segment, so it's partially full",
-        //         firstPartial,
-        //         CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_LOW,
-        //         EnumSet.of(
-        //                 ExpectedFlag.NEW_ENTRY_ADDED,
-        //                 ExpectedFlag.PRIOR_ENTRIES_READABLE),
-        //         false
-        // ));
-        //
+
+        availableTestState.add(new TestState(
+                "#03: put of second segment, so it's partially full",
+                firstPartial,
+                CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_LOW,
+                EnumSet.of(
+                        ExpectedFlag.NEW_ENTRY_ADDED,
+                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
+                false
+        ));
+
         // availableTestState.add(new TestState(
         //         "#04: put of second segment, so it's full",
         //         firstFull,
@@ -125,10 +125,11 @@ class MyReadCacheTest {
 
         testState.sut.put(testState.ledgerId, testState.entryId, testState.entry);
 
+        logger.info(String.format("# of assertEquals expected: %d", testState.expectedEntries.size()));
         for (MyReadCacheTestEntry expectedEntry : testState.expectedEntries) {
             int size = expectedEntry.content.writerIndex();
             ByteBuf actual = testState.sut.get(expectedEntry.ledgerId, expectedEntry.entryId);
-            logger.info("actual:" + actual.toString());
+            logger.info(String.format("actual: %s", actual.toString()));
             Assertions.assertEquals(
                     expectedEntry.content.internalNioBuffer(0, size),
                     actual.internalNioBuffer(0, size));
