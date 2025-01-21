@@ -235,6 +235,14 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <properties>
+        <CustomTest.surefireIncludes></CustomTest.surefireIncludes>
+        <CustomTest.jacocoIncludes></CustomTest.jacocoIncludes>
+        <CustomTest.baduaArgument></CustomTest.baduaArgument>
+        <CustomTest.pitestTargetClasses></CustomTest.pitestTargetClasses>
+        <CustomTest.pitestTargetTests></CustomTest.pitestTargetTests>
+        <CustomTest.pitestExcludedMethods></CustomTest.pitestExcludedMethods>
+    </properties>
     <build>
         <plugins>
             <plugin>
@@ -374,6 +382,34 @@
             </build>
         </profile>
 
+        <!-- Profile for the activation for the BufferedChannel Test suite -->
+        <profile>
+            <id>MyBufferedChannelSuite</id>
+
+            <properties>
+                <CustomTest.surefireIncludes>
+                    MyBufferedChannelTest.java
+                </CustomTest.surefireIncludes>
+                <CustomTest.jacocoIncludes>
+                    org/apache/bookkeeper/bookie/BufferedChannel.class
+                </CustomTest.jacocoIncludes>
+                <CustomTest.baduaArgument>
+                    ba-dua/classes/org/apache/bookkeeper/bookie/
+                </CustomTest.baduaArgument>
+                <CustomTest.pitestTargetClasses>
+                    org.apache.bookkeeper.bookie.BufferedChannel
+                </CustomTest.pitestTargetClasses>
+                <CustomTest.pitestTargetTests>
+                    org.apache.bookkeeper.bookie.MyBufferedChannelTest
+                </CustomTest.pitestTargetTests>
+                <CustomTest.pitestExcludedMethods>
+                    close,write,position,getFileChannelPosition,flushAndForceWrite,flushAndForceWriteIfRegularFlush,
+                    ,flush,forceWrite,clear,getNumOfBytesInWriteBuffer,getUnpersistedBytes,
+                </CustomTest.pitestExcludedMethods>
+            </properties>
+
+        </profile>
+
         <!-- Custom test definition profile -->
         <profile>
             <id>customTest</id>
@@ -397,7 +433,7 @@
                         <configuration>
                             <!-- List of test to run -->
                             <includes>
-                                <include>MyBufferedChannelTest.java</include>
+                                ${CustomTest.surefireIncludes}
                             </includes>
                         </configuration>
                     </plugin>
@@ -481,7 +517,7 @@
                                 <phase>test</phase>
                                 <configuration>
                                     <includes>
-                                        <include>org/apache/bookkeeper/bookie/BufferedChannel.class</include>
+                                        ${CustomTest.jacocoIncludes}
                                     </includes>
                                 </configuration>
                                 <goals>
@@ -565,7 +601,8 @@
                                         <argument>-input</argument>
                                         <argument>${project.build.directory}/coverage.ser</argument>
                                         <argument>-classes</argument>
-                                        <argument>ba-dua/classes</argument>
+<!--                                        <argument>ba-dua/classes</argument>-->
+                                        <argument>${CustomTest.baduaArgument}</argument>
                                         <argument>-show-classes</argument>
                                         <argument>-show-methods</argument>
                                         <argument>-xml</argument>
@@ -641,10 +678,10 @@
                             <reportsDirectory>${project.build.directory}/site/pit-reports</reportsDirectory>
                             <threads>4</threads>
                             <targetClasses>
-                                <param>org.apache.bookkeeper.bookie.BufferedChannel</param>
+                                ${CustomTest.pitestTargetClasses}
                             </targetClasses>
                             <targetTests>
-                                <param>org.apache.bookkeeper.bookie.MyBufferedChannelTest</param>
+                                ${CustomTest.pitestTargetTests}
                             </targetTests>
                             <timeoutConstant>10000</timeoutConstant>
                             <avoidCallsTo>
@@ -654,17 +691,7 @@
                                 <avoidCallsTo>org.apache.commons.logging</avoidCallsTo>
                             </avoidCallsTo>
                             <excludedMethods>
-                                <excludedMethod>close</excludedMethod>
-                                <excludedMethod>write</excludedMethod>
-                                <excludedMethod>position</excludedMethod>
-                                <excludedMethod>getFileChannelPosition</excludedMethod>
-                                <excludedMethod>flushAndForceWrite</excludedMethod>
-                                <excludedMethod>flushAndForceWriteIfRegularFlush</excludedMethod>
-                                <excludedMethod>flush</excludedMethod>
-                                <excludedMethod>forceWrite</excludedMethod>
-                                <excludedMethod>clear</excludedMethod>
-                                <excludedMethod>getNumOfBytesInWriteBuffer</excludedMethod>
-                                <excludedMethod>getUnpersistedBytes</excludedMethod>
+                                ${CustomTest.pitestExcludedMethods}
                             </excludedMethods>
                             <verbose>false</verbose>
                         </configuration>
