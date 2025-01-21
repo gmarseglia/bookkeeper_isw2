@@ -408,6 +408,31 @@
             </properties>
         </profile>
 
+        <!-- Profile for the activation for the ReadCache Test suite -->
+        <profile>
+            <id>MyReadCacheSuite</id>
+            <properties>
+                <CustomTest.surefireIncludes>
+                    MyReadCacheTest.java
+                </CustomTest.surefireIncludes>
+                <CustomTest.jacocoIncludes>
+                    org/apache/bookkeeper/bookie/storage/ldb/ReadCache.class
+                </CustomTest.jacocoIncludes>
+                <CustomTest.baduaArgument>
+                    ba-dua/classes/org/apache/bookkeeper/bookie/storage/ldb/
+                </CustomTest.baduaArgument>
+                <CustomTest.pitestTargetClasses>
+                    org.apache.bookkeeper.bookie.storage.ldb.ReadCache
+                </CustomTest.pitestTargetClasses>
+                <CustomTest.pitestTargetTests>
+                    org.apache.bookkeeper.bookie.storage.ldb.MyReadCacheTest
+                </CustomTest.pitestTargetTests>
+                <CustomTest.pitestExcludedMethods>
+                    close,get,hasEntry,size,count
+                </CustomTest.pitestExcludedMethods>
+            </properties>
+        </profile>
+
         <!-- Custom test definition profile -->
         <profile>
             <id>customTest</id>
