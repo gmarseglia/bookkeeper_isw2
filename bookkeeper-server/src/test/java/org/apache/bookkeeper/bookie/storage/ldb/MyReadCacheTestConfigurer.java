@@ -16,10 +16,8 @@ public class MyReadCacheTestConfigurer {
     private static final int FIRST_SEGMENT_LEDGER = 1;
     private static final int SECOND_SEGMENT_LEDGER = 2;
     private static final int NON_PRESENT_LEDGER = 3;
-
+    private final List<MyReadCacheTestEntry> addedEntries = new ArrayList<>();
     private int actualSegmentCapacity;
-
-    private List<MyReadCacheTestEntry> addedEntries = new ArrayList<>();
 
     public void setup(MyReadCacheTest.TestState testState) {
         /* Configure the environment */
@@ -51,23 +49,23 @@ public class MyReadCacheTestConfigurer {
         switch (testState.entryState) {
             case LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_LOW:
                 size = 1;
-                content = getByteBuf(size, getByteFromId(ledgerId, entryId));
                 break;
             case LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH:
                 size = actualSegmentCapacity;
-                content = getByteBuf(size, getByteFromId(ledgerId, entryId));
                 break;
             case LESS_EQUAL_THAN_SEGMENT_SIZE_LOW:
                 size = actualSegmentCapacity + 1;
-                content = getByteBuf(size, getByteFromId(ledgerId, entryId));
                 break;
             case LESS_EQUAL_THAN_SEGMENT_SIZE_HIGH:
                 size = MAX_SEGMENT_SIZE;
-                content = getByteBuf(size, getByteFromId(ledgerId, entryId));
+                break;
+            case GREATER_THAN_SEGMENT_SIZE:
+                size = MAX_SEGMENT_SIZE + 1;
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.entryState);
         }
+        content = getByteBuf(size, getByteFromId(ledgerId, entryId));
         testState.entry = content;
 
         MyReadCacheTestEntry newEntry = new MyReadCacheTestEntry(ledgerId, entryId, content);

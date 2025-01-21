@@ -78,15 +78,15 @@ class MyReadCacheTest {
                 true
         ));
 
-        // availableTestState.add(new TestState(
-        //         "#06: entry too big",
-        //         firstPartial,
-        //         CompositeIdState.NON_PRESENT, EntryState.GREATER_THAN_SEGMENT_SIZE,
-        //         EnumSet.of(
-        //                 ExpectedFlag.PRIOR_ENTRIES_READABLE),
-        //         false
-        // ));
-        //
+        availableTestState.add(new TestState(
+                "#06: entry too big",
+                firstPartial,
+                CompositeIdState.NON_PRESENT, EntryState.GREATER_THAN_SEGMENT_SIZE,
+                EnumSet.of(
+                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
+                false
+        ));
+
         // availableTestState.add(new TestState(
         //         "#07: put of null",
         //         firstFull,
