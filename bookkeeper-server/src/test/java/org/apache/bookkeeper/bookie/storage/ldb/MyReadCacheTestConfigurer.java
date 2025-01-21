@@ -106,7 +106,14 @@ public class MyReadCacheTestConfigurer {
             }
         }
         if (testState.expectedState.contains(MyReadCacheTest.ExpectedFlag.ONLY_SECOND_SEGMENT_ENTRIES_READABLE)) {
-            throw new IllegalStateException("#TODO: ONLY_SECOND_SEGMENT_ENTRIES_READABLE");
+            for (MyReadCacheTestEntry entry : addedEntries) {
+                // Only added entries different from newEntry
+                if (entry.ledgerId != newEntry.ledgerId || entry.entryId != newEntry.entryId) {
+                    // Only entries from second segment
+                    if (entry.segment == 2)
+                        expectedEntries.add(entry);
+                }
+            }
         }
 
     }
@@ -118,9 +125,7 @@ public class MyReadCacheTestConfigurer {
         sut = testState.sut;
 
         /* Set up the state of the first segment */
-        MyReadCacheTestEntry firstEntry;
         Integer firstSize = null;
-        long ledgerId, entryId;
         boolean concludeConfiguration;
         switch (testState.configuration.segment1State) {
             case EMPTY:
@@ -140,6 +145,8 @@ public class MyReadCacheTestConfigurer {
         }
 
         if (firstSize != null) {
+            MyReadCacheTestEntry firstEntry;
+            long ledgerId, entryId;
             actualSegmentCapacity = MAX_SEGMENT_SIZE - firstSize;
 
             // Put the entry in the sut
@@ -156,12 +163,36 @@ public class MyReadCacheTestConfigurer {
         if (concludeConfiguration) return;
 
         /* Set up the state of the second segment */
+        Integer secondSize = null;
         switch (testState.configuration.segment2State) {
             case EMPTY:
                 actualSegmentCapacity = MAX_SEGMENT_SIZE;
                 break;
+            case FULL:
+                secondSize = MAX_SEGMENT_SIZE;
+                actualSegmentCapacity = MAX_SEGMENT_SIZE;
+                break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.configuration.segment2State);
+        }
+
+        if (secondSize != null) {
+            MyReadCacheTestEntry secondEntry;
+            long ledgerId, entryId;
+            actualSegmentCapacity = MAX_SEGMENT_SIZE - secondSize;
+            // This is for when second segment it's full so next segment is used
+            if (actualSegmentCapacity == 0) actualSegmentCapacity = MAX_SEGMENT_SIZE;
+
+            // Put the entry in the sut
+            ledgerId = SECOND_SEGMENT_LEDGER;
+            entryId = 1;
+            ByteBuf content = getByteBuf(secondSize, getByteFromId(ledgerId, entryId));
+            sut.put(ledgerId, entryId, content);
+
+            // Add the entry to the list of added entries
+            secondEntry = new MyReadCacheTestEntry(ledgerId, entryId, content);
+            secondEntry.segment = 2;
+            addedEntries.add(secondEntry);
         }
     }
 
