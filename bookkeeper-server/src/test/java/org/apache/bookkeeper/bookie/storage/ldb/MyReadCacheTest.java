@@ -165,6 +165,7 @@ class MyReadCacheTest {
     }
 
     @Test
+    @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
     void putConcurrentTest() throws NoSuchFieldException, IllegalAccessException, InterruptedException {
         Configuration firstFull = new Configuration(SegmentState.FULL, SegmentState.EMPTY);
         TestState testState = new TestState(
