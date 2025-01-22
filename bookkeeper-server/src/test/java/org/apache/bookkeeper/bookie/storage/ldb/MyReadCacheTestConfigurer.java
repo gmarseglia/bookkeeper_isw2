@@ -16,7 +16,8 @@ public class MyReadCacheTestConfigurer {
     private static final int FIRST_SEGMENT_LEDGER = 1;
     private static final int SECOND_SEGMENT_LEDGER = 2;
     private static final int NON_PRESENT_LEDGER = 3;
-    private final List<MyReadCacheTestEntry> addedEntries = new ArrayList<>();
+
+    public final List<MyReadCacheTestEntry> addedEntries = new ArrayList<>();
     private int actualSegmentCapacity;
 
     public void setup(MyReadCacheTest.TestState testState) {
