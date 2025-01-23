@@ -173,6 +173,9 @@ public class MyReadCacheTestConfigurer {
             case EMPTY:
                 actualSegmentCapacity = MAX_SEGMENT_SIZE;
                 break;
+            case PARTIAL:
+                secondSize = MAX_SEGMENT_SIZE / 2;
+                break;
             case FULL:
                 secondSize = MAX_SEGMENT_SIZE;
                 actualSegmentCapacity = MAX_SEGMENT_SIZE;

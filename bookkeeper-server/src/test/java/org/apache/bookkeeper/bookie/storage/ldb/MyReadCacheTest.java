@@ -29,6 +29,7 @@ class MyReadCacheTest {
     private static final Configuration FIRST_FULL = new Configuration(SegmentState.FULL, SegmentState.EMPTY);
     private static final Configuration ALL_EMPTY = new Configuration(SegmentState.EMPTY, SegmentState.EMPTY);
     private static final Configuration FIRST_PARTIAL = new Configuration(SegmentState.PARTIAL, SegmentState.EMPTY);
+    private static final Configuration SECOND_PARTIAL = new Configuration(SegmentState.FULL, SegmentState.PARTIAL);
     private static final Configuration ALL_FULL = new Configuration(SegmentState.FULL, SegmentState.FULL);
 
     private static Stream<Arguments> putTestArguments() {
@@ -115,6 +116,16 @@ class MyReadCacheTest {
                 true
         ));
 
+        availableTestState.add(new TestState(
+                "#10: put of exact size to avoid overwrite",
+                SECOND_PARTIAL,
+                CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
+                EnumSet.of(
+                        ExpectedFlag.PRIOR_ENTRIES_READABLE,
+                        ExpectedFlag.NEW_ENTRY_ADDED),
+                true
+        ));
+
 
         for (TestState state : availableTestState) {
             if (!state.successful)
@@ -173,7 +184,7 @@ class MyReadCacheTest {
                 CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_LOW,
                 EnumSet.of(
                         ExpectedFlag.PRIOR_ENTRIES_READABLE),
-                false
+                true
         );
 
         logger.info(testState.description);
