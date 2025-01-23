@@ -79,6 +79,7 @@ public class MyReadCacheTestConfigurer {
         testState.entry = content;
 
         MyReadCacheTestEntry newEntry = new MyReadCacheTestEntry(ledgerId, entryId, content);
+        newEntry.segment = 0;
 
         /* Set up expectedEntries */
         List<MyReadCacheTestEntry> expectedEntries = testState.expectedEntries;
@@ -105,7 +106,8 @@ public class MyReadCacheTestConfigurer {
             expectedEntries.add(found);
         }
         // Add all entries in addedEntries different from newEntry to expectedEntries
-        if (testState.expectedState.contains(MyReadCacheTest.ExpectedFlag.PRIOR_ENTRIES_READABLE)) {
+        if (testState.expectedState.contains(MyReadCacheTest.ExpectedFlag.PRIOR_ENTRIES_READABLE) ||
+                testState.expectedState.contains(MyReadCacheTest.ExpectedFlag.ONLY_SECOND_SEGMENT_ENTRIES_READABLE)){
             for (MyReadCacheTestEntry entry : addedEntries) {
                 // Only added entries different from newEntry
                 if (entry.ledgerId != newEntry.ledgerId || entry.entryId != newEntry.entryId) {
@@ -113,16 +115,7 @@ public class MyReadCacheTestConfigurer {
                 }
             }
         }
-        if (testState.expectedState.contains(MyReadCacheTest.ExpectedFlag.ONLY_SECOND_SEGMENT_ENTRIES_READABLE)) {
-            for (MyReadCacheTestEntry entry : addedEntries) {
-                // Only added entries different from newEntry
-                if (entry.ledgerId != newEntry.ledgerId || entry.entryId != newEntry.entryId) {
-                    // Only entries from second segment
-                    if (entry.segment == 2)
-                        expectedEntries.add(entry);
-                }
-            }
-        }
+
 
     }
 
@@ -165,6 +158,7 @@ public class MyReadCacheTestConfigurer {
 
             // Add the entry to the list of added entries
             firstEntry = new MyReadCacheTestEntry(ledgerId, entryId, content);
+            firstEntry.segment = 1;
             addedEntries.add(firstEntry);
         }
 

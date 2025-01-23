@@ -133,7 +133,7 @@ class MyReadCacheTest {
 
         availableTestState.add(new TestState(
                 "#09: concurrent test",
-                ALL_FULL,
+                FIRST_FULL,
                 CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_LOW,
                 EnumSet.of(
                         ExpectedFlag.PRIOR_ENTRIES_READABLE),
@@ -188,13 +188,18 @@ class MyReadCacheTest {
         for (MyReadCacheTestEntry expectedEntry : testState.expectedEntries) {
             int size = expectedEntry.content.writerIndex();
             ByteBuf actual = testState.sut.get(expectedEntry.ledgerId, expectedEntry.entryId);
-            logger.info(String.format("actual: %s", actual.toString()));
+            logger.info(String.format("actual: %s", actual == null ? "null" : actual.toString()));
 
-            Assertions.assertEquals(
-                    expectedEntry.content.internalNioBuffer(0, size),
-                    actual.internalNioBuffer(0, size));
+            if (testState.expectedState.contains(ExpectedFlag.ONLY_SECOND_SEGMENT_ENTRIES_READABLE) && expectedEntry.segment == 1) {
+                Assertions.assertNull(actual);
+            } else {
+                Assertions.assertEquals(
+                        expectedEntry.content.internalNioBuffer(0, size),
+                        actual.internalNioBuffer(0, size));
 
-            actual.release();
+                actual.release();
+            }
+
         }
     }
 
@@ -302,13 +307,14 @@ class MyReadCacheTest {
             ByteBuf actual = testState.sut.get(expectedEntry.ledgerId, expectedEntry.entryId);
             logger.info(String.format("actual: %s", actual == null ? "null" : actual.toString()));
 
-            if (expectedEntry.segment == 2) {
+            if (testState.expectedState.contains(ExpectedFlag.ONLY_SECOND_SEGMENT_ENTRIES_READABLE) && expectedEntry.segment == 1) {
+                Assertions.assertNull(actual);
+            } else {
                 Assertions.assertEquals(
                         expectedEntry.content.internalNioBuffer(0, size),
                         actual.internalNioBuffer(0, size));
+
                 actual.release();
-            } else {
-                Assertions.assertNull(actual);
             }
 
             expectedEntry.content.release();
