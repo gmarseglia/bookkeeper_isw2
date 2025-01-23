@@ -69,6 +69,9 @@ public class MyReadCacheTestConfigurer {
             case EMPTY:
                 size = 0;
                 break;
+            case HALF_OF_SEGMENT_SIZE:
+                size = MAX_SEGMENT_SIZE / 2;
+                break;
             default:
                 throw new IllegalStateException("Unexpected value: " + testState.entryState);
         }

@@ -3,7 +3,6 @@ package org.apache.bookkeeper.bookie.storage.ldb;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -137,6 +136,40 @@ class MyReadCacheTest {
         return activeArguments.stream();
     }
 
+    private static Stream<Arguments> putConcurrentTestArguments() {
+        logger.info(String.format("env: %s", envFlag));
+        List<TestState> availableTestState = new ArrayList<>();
+        List<Arguments> activeArguments = new ArrayList<>();
+
+        availableTestState.add(new TestState(
+                "#09: concurrent test",
+                ALL_FULL,
+                CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_LOW,
+                EnumSet.of(
+                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
+                true
+        ));
+
+        availableTestState.add(new TestState(
+                "#11: concurrent test with exact size to avoid overwrite",
+                ALL_FULL,
+                CompositeIdState.NON_PRESENT, EntryState.HALF_OF_SEGMENT_SIZE,
+                EnumSet.of(
+                        ExpectedFlag.ONLY_SECOND_SEGMENT_ENTRIES_READABLE),
+                true
+        ));
+
+
+        for (TestState state : availableTestState) {
+            if (!state.successful)
+                if (("pitest".equals(envFlag) || "onlySuccess".equals(envFlag)))
+                    continue;
+            activeArguments.add(Arguments.of(state));
+        }
+
+        return activeArguments.stream();
+    }
+
     @ParameterizedTest
     @MethodSource("putTestArguments")
     @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
@@ -175,18 +208,10 @@ class MyReadCacheTest {
         }
     }
 
-    @Test
+    @ParameterizedTest
+    @MethodSource("putConcurrentTestArguments")
     @Timeout(value = 5, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
-    void putConcurrentTest() throws NoSuchFieldException, IllegalAccessException, InterruptedException {
-        TestState testState = new TestState(
-                "#09: concurrent test",
-                ALL_FULL,
-                CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_LOW,
-                EnumSet.of(
-                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
-                true
-        );
-
+    void putConcurrentTest(TestState testState) throws NoSuchFieldException, IllegalAccessException, InterruptedException {
         logger.info(testState.description);
 
         MyReadCacheTestConfigurer configurer = new MyReadCacheTestConfigurer();
@@ -312,7 +337,8 @@ class MyReadCacheTest {
         NULL, EMPTY,
         LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_LOW, LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
         LESS_EQUAL_THAN_SEGMENT_SIZE_LOW, LESS_EQUAL_THAN_SEGMENT_SIZE_HIGH,
-        GREATER_THAN_SEGMENT_SIZE
+        GREATER_THAN_SEGMENT_SIZE,
+        HALF_OF_SEGMENT_SIZE
     }
 
     public enum ExpectedFlag {
