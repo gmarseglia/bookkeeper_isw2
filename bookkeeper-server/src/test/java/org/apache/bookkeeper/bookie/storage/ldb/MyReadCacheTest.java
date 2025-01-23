@@ -47,11 +47,11 @@ class MyReadCacheTest {
 
         availableTestState.add(new TestState(
                 "#02: put in partially full segment",
-                FIRST_PARTIAL,
-                CompositeIdState.PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
+                SECOND_PARTIAL,
+                CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
                 EnumSet.of(
-                        ExpectedFlag.NEW_ENTRY_UPDATED,
-                        ExpectedFlag.PRIOR_ENTRIES_READABLE),
+                        ExpectedFlag.PRIOR_ENTRIES_READABLE,
+                        ExpectedFlag.NEW_ENTRY_ADDED),
                 true
         ));
 
@@ -115,16 +115,6 @@ class MyReadCacheTest {
                 true
         ));
 
-        availableTestState.add(new TestState(
-                "#10: put of exact size to avoid overwrite",
-                SECOND_PARTIAL,
-                CompositeIdState.NON_PRESENT, EntryState.LESS_EQUAL_THAN_ACTUAL_SEGMENT_CAPACITY_HIGH,
-                EnumSet.of(
-                        ExpectedFlag.PRIOR_ENTRIES_READABLE,
-                        ExpectedFlag.NEW_ENTRY_ADDED),
-                true
-        ));
-
 
         for (TestState state : availableTestState) {
             if (!state.successful)
@@ -151,7 +141,7 @@ class MyReadCacheTest {
         ));
 
         availableTestState.add(new TestState(
-                "#11: concurrent test with exact size to avoid overwrite",
+                "#10: concurrent test with exact size to avoid overwrite",
                 ALL_FULL,
                 CompositeIdState.NON_PRESENT, EntryState.HALF_OF_SEGMENT_SIZE,
                 EnumSet.of(
