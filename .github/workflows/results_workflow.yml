@@ -28,3 +28,8 @@ jobs:
       - name: Test with Junit
         working-directory: bookkeeper-server/
         run: mvn -B test -PMyAllSuite,customTest
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Surefire Report
+          path: bookkeeper-server/target/surefire-reports
