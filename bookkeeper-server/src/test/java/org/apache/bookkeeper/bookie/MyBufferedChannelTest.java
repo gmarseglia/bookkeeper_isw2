@@ -149,7 +149,7 @@ public class MyBufferedChannelTest {
                 "#15: read buffer of zero capacity",
                 zeroRead,
                 DestState.EQUAL_AS_LENGTH, PosState.EQUAL_AS_ZERO, LengthState.LESS_EQUAL_THAN_READABLE,
-                ExpectedState.FILE_TIMES_LENGTH, false
+                ExpectedState.IO_EXCEPTION, false
         ));
 
         for (TestState state : activeTestState) {
